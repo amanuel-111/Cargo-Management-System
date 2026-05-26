@@ -66,16 +66,17 @@ const CreateShipment = () => {
     handleSubmit,
     watch,
     trigger,
-    getValues,
     formState: { errors },
   } = useForm({
     defaultValues: { priority: 'normal', cargoCategory: 'general', cargoQuantity: 1 },
     mode: 'onChange',
   });
 
-  const watchedPickupCity  = watch('pickupCity');
-  const watchedDestCity    = watch('destCity');
-  const watchedCargoWeight = watch('cargoWeight');
+  // watch() with no args returns ALL field values reactively — fixes step 3 showing empty data
+  const formData           = watch();
+  const watchedPickupCity  = formData.pickupCity;
+  const watchedDestCity    = formData.destCity;
+  const watchedCargoWeight = formData.cargoWeight;
 
   // Recalculate price whenever relevant fields change
   useEffect(() => {
@@ -156,8 +157,6 @@ const CreateShipment = () => {
       setLoading(false);
     }
   };
-
-  const formData = getValues();
 
   return (
     <div className="max-w-2xl mx-auto">
