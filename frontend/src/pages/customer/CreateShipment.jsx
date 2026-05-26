@@ -204,11 +204,11 @@ const CreateShipment = () => {
                   </select>
                   {errors.pickupCity && <p className="text-red-500 text-xs mt-1">{errors.pickupCity.message}</p>}
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
-                <input {...register('pickupAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
-                {errors.pickupAddress && <p className="text-red-500 text-xs mt-1">{errors.pickupAddress.message}</p>}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
+                  <input {...register('pickupAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
+                  {errors.pickupAddress && <p className="text-red-500 text-xs mt-1">{errors.pickupAddress.message}</p>}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -236,11 +236,11 @@ const CreateShipment = () => {
                   </select>
                   {errors.destCity && <p className="text-red-500 text-xs mt-1">{errors.destCity.message}</p>}
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
-                <input {...register('destAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
-                {errors.destAddress && <p className="text-red-500 text-xs mt-1">{errors.destAddress.message}</p>}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
+                  <input {...register('destAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
+                  {errors.destAddress && <p className="text-red-500 text-xs mt-1">{errors.destAddress.message}</p>}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
