@@ -34,7 +34,7 @@ const CITIES = [
 ];
 
 const PRICE_PER_KM = 25;
-const WEIGHT_RATE  = 2;
+const WEIGHT_RATE  = 35;
 const MIN_PRICE    = 200;
 
 function haversineKm(lat1, lng1, lat2, lng2) {

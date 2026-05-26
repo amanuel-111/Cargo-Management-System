@@ -5,7 +5,7 @@ const notificationService = require('../services/notificationService');
 // ── Pricing helpers ───────────────────────────────────────────
 const PRICE_PER_KM = 25;          // ETB per km
 const MIN_PRICE    = 200;         // minimum fare in ETB
-const WEIGHT_RATE  = 2;           // ETB per kg (secondary surcharge)
+const WEIGHT_RATE  = 35;           // ETB per kg
 
 /**
  * Haversine distance between two lat/lng points — returns km.
