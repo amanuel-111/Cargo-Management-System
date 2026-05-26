@@ -3,15 +3,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck, FiZap } from 'react-icons/fi';
 import { login } from '../../redux/slices/authSlice';
+
+const DEMO_USERS = [
+  { label: 'Admin',        email: 'admin@smarttransport.et', password: 'admin123', color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
+  { label: 'Fleet Mgr',   email: 'fleet@smarttransport.et', password: 'fleet123', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
+  { label: 'Driver',      email: 'driver@test.et',          password: 'test123',  color: 'bg-green-100 text-green-700 hover:bg-green-200' },
+  { label: 'Customer',    email: 'customer@test.et',        password: 'test123',  color: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
+];
 
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
   const [showPass, setShowPass] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
+
+  const fillDemo = (user) => {
+    setValue('email', user.email, { shouldValidate: true });
+    setValue('password', user.password, { shouldValidate: true });
+  };
 
   const onSubmit = async (data) => {
     const result = await dispatch(login(data));
@@ -96,10 +108,22 @@ const LoginPage = () => {
 
           {/* Demo credentials */}
           <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-            <p className="text-xs font-medium text-gray-600 mb-2">Demo Credentials:</p>
-            <div className="space-y-1 text-xs text-gray-500">
-              <p>Admin: admin@smarttransport.et / admin123</p>
-              <p>Customer: customer@test.et / test123</p>
+            <div className="flex items-center gap-1.5 mb-3">
+              <FiZap size={13} className="text-primary-500" />
+              <p className="text-xs font-semibold text-gray-600">Quick Login — click to fill</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_USERS.map((u) => (
+                <button
+                  key={u.label}
+                  type="button"
+                  onClick={() => fillDemo(u)}
+                  className={`text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${u.color}`}
+                >
+                  <span className="font-semibold block">{u.label}</span>
+                  <span className="opacity-75 truncate block">{u.email}</span>
+                </button>
+              ))}
             </div>
           </div>
         </motion.div>
