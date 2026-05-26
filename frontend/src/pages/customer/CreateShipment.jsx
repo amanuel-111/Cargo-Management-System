@@ -204,10 +204,6 @@ const CreateShipment = () => {
                   </select>
                   {errors.pickupCity && <p className="text-red-500 text-xs mt-1">{errors.pickupCity.message}</p>}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Region</label>
-                  <input {...register('pickupRegion')} className="input-field" placeholder="e.g. Oromia" />
-                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
@@ -239,10 +235,6 @@ const CreateShipment = () => {
                     {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
                   {errors.destCity && <p className="text-red-500 text-xs mt-1">{errors.destCity.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Region</label>
-                  <input {...register('destRegion')} className="input-field" placeholder="e.g. SNNPR" />
                 </div>
               </div>
               <div>
