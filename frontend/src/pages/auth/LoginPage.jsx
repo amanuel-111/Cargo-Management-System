@@ -36,8 +36,10 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-2xl p-8">
+      <div className="w-full max-w-4xl flex gap-6 items-start">
+
+        {/* ── Login Form Card ── */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-2xl p-8 flex-1">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -105,32 +107,58 @@ const LoginPage = () => {
               Create one
             </Link>
           </p>
+        </motion.div>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center gap-1.5 mb-3">
-              <FiZap size={13} className="text-primary-500" />
-              <p className="text-xs font-semibold text-gray-600">Quick Login — click to fill</p>
+        {/* ── Demo Credentials Card ── */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+          className="w-72 flex-shrink-0"
+        >
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 bg-primary-500 rounded-lg flex items-center justify-center">
+                <FiZap size={14} className="text-white" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-sm">Demo Credentials</p>
+                <p className="text-white/50 text-xs">Click any role to fill the form</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+
+            <div className="space-y-2">
               {DEMO_USERS.map((u) => (
                 <button
                   key={u.label}
                   type="button"
                   onClick={() => fillDemo(u)}
-                  className={`text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${u.color}`}
+                  className="w-full text-left px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/30 transition-all group"
                 >
-                  <span className="font-semibold block">{u.label}</span>
-                  <span className="opacity-75 truncate block">{u.email}</span>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${u.color}`}>
+                      {u.label}
+                    </span>
+                    <span className="text-white/40 text-xs group-hover:text-white/70 transition-colors">
+                      click to fill →
+                    </span>
+                  </div>
+                  <p className="text-white/70 text-xs mt-1.5 truncate">{u.email}</p>
+                  <p className="text-white/40 text-xs">{u.password}</p>
                 </button>
               ))}
             </div>
+
+            <p className="text-white/30 text-xs text-center mt-4">
+              For demo & testing purposes only
+            </p>
           </div>
+
+          <p className="text-center text-gray-400 text-sm mt-4">
+            <Link to="/" className="hover:text-white transition-colors">← Back to Home</Link>
+          </p>
         </motion.div>
 
-        <p className="text-center text-gray-400 text-sm mt-6">
-          <Link to="/" className="hover:text-white transition-colors">← Back to Home</Link>
-        </p>
       </div>
     </div>
   );
