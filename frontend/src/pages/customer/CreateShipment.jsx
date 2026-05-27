@@ -1,39 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiMapPin, FiPackage, FiInfo, FiArrowRight,
-  FiArrowLeft, FiCheckCircle, FiTruck, FiDollarSign,
+  FiArrowLeft, FiCheckCircle, FiTruck, FiDollarSign, FiAlertCircle,
 } from 'react-icons/fi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const steps = ['Pickup & Delivery', 'Cargo Details', 'Review & Submit'];
-
 const cargoCategories = ['general', 'fragile', 'perishable', 'hazardous', 'electronics', 'furniture', 'livestock'];
 const priorities = ['normal', 'urgent'];
-
-// Weight rate per priority
 const WEIGHT_RATES = { normal: 35, urgent: 40 };
 
-// Ethiopian cities with real coordinates
 const CITIES = [
-  { name: 'Addis Ababa',  lat: 9.0320,  lng: 38.7469 },
-  { name: 'Dire Dawa',    lat: 9.5931,  lng: 41.8661 },
-  { name: 'Mekelle',      lat: 13.4967, lng: 39.4753 },
-  { name: 'Gondar',       lat: 12.6030, lng: 37.4521 },
-  { name: 'Hawassa',      lat: 7.0621,  lng: 38.4762 },
-  { name: 'Bahir Dar',    lat: 11.5936, lng: 37.3906 },
-  { name: 'Adama',        lat: 8.5400,  lng: 39.2700 },
-  { name: 'Jimma',        lat: 7.6667,  lng: 36.8333 },
-  { name: 'Dessie',       lat: 11.1333, lng: 39.6333 },
-  { name: 'Jijiga',       lat: 9.3500,  lng: 42.8000 },
-  { name: 'Shashamane',   lat: 7.2000,  lng: 38.5833 },
-  { name: 'Bishoftu',     lat: 8.7500,  lng: 38.9833 },
-  { name: 'Arba Minch',   lat: 6.0333,  lng: 37.5500 },
-  { name: 'Hosaena',      lat: 7.5500,  lng: 37.8500 },
-  { name: 'Woldia',       lat: 11.8167, lng: 39.6000 },
+  { name: 'Addis Ababa', lat: 9.0320,  lng: 38.7469 },
+  { name: 'Dire Dawa',   lat: 9.5931,  lng: 41.8661 },
+  { name: 'Mekelle',     lat: 13.4967, lng: 39.4753 },
+  { name: 'Gondar',      lat: 12.6030, lng: 37.4521 },
+  { name: 'Hawassa',     lat: 7.0621,  lng: 38.4762 },
+  { name: 'Bahir Dar',   lat: 11.5936, lng: 37.3906 },
+  { name: 'Adama',       lat: 8.5400,  lng: 39.2700 },
+  { name: 'Jimma',       lat: 7.6667,  lng: 36.8333 },
+  { name: 'Dessie',      lat: 11.1333, lng: 39.6333 },
+  { name: 'Jijiga',      lat: 9.3500,  lng: 42.8000 },
+  { name: 'Shashamane',  lat: 7.2000,  lng: 38.5833 },
+  { name: 'Bishoftu',    lat: 8.7500,  lng: 38.9833 },
+  { name: 'Arba Minch',  lat: 6.0333,  lng: 37.5500 },
+  { name: 'Hosaena',     lat: 7.5500,  lng: 37.8500 },
+  { name: 'Woldia',      lat: 11.8167, lng: 39.6000 },
 ];
 
 const PRICE_PER_KM = 25;
@@ -51,16 +47,42 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Fields that must pass before advancing each step
 const STEP_FIELDS = [
   ['pickupCity', 'pickupAddress', 'destCity', 'destAddress'],
   ['cargoDescription', 'cargoWeight'],
 ];
 
+// ── Reusable inline error message ─────────────────────────────
+const FieldError = ({ message }) => (
+  <AnimatePresence mode="wait">
+    {message && (
+      <motion.p
+        key={message}
+        initial={{ opacity: 0, y: -4, height: 0 }}
+        animate={{ opacity: 1, y: 0, height: 'auto' }}
+        exit={{ opacity: 0, y: -4, height: 0 }}
+        transition={{ duration: 0.15 }}
+        className="flex items-center gap-1 text-red-500 text-xs mt-1"
+      >
+        <FiAlertCircle size={11} className="flex-shrink-0" />
+        {message}
+      </motion.p>
+    )}
+  </AnimatePresence>
+);
+
+// Border class based on error state
+const fc = (err, dirty) => {
+  if (err)          return 'input-field border-red-400 focus:ring-red-400 bg-red-50';
+  if (dirty && !err) return 'input-field border-green-400 focus:ring-green-400';
+  return 'input-field';
+};
+
 const CreateShipment = () => {
   const navigate = useNavigate();
   const [step, setStep]       = useState(0);
   const [loading, setLoading] = useState(false);
+  const [shakeNext, setShakeNext] = useState(false);
   const [pricing, setPricing] = useState({ distanceKm: 0, distancePrice: 0, weightPrice: 0, total: MIN_PRICE });
 
   const {
@@ -68,45 +90,45 @@ const CreateShipment = () => {
     handleSubmit,
     watch,
     trigger,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm({
     defaultValues: { priority: 'normal', cargoCategory: 'general', cargoQuantity: 1 },
     mode: 'onChange',
   });
 
-  // watch() with no args returns ALL field values reactively — fixes step 3 showing empty data
   const formData           = watch();
   const watchedPickupCity  = formData.pickupCity;
   const watchedDestCity    = formData.destCity;
   const watchedCargoWeight = formData.cargoWeight;
   const watchedPriority    = formData.priority || 'normal';
 
-  // Recalculate price whenever relevant fields change
   useEffect(() => {
     const pickup = CITIES.find((c) => c.name === watchedPickupCity);
     const dest   = CITIES.find((c) => c.name === watchedDestCity);
     const weight = Number(watchedCargoWeight) || 0;
     const rate   = WEIGHT_RATES[watchedPriority] || WEIGHT_RATES.normal;
 
-    let distanceKm    = 0;
-    let distancePrice = 0;
-
+    let distanceKm = 0, distancePrice = 0;
     if (pickup && dest && pickup.name !== dest.name) {
       distanceKm    = parseFloat(haversineKm(pickup.lat, pickup.lng, dest.lat, dest.lng).toFixed(1));
       distancePrice = parseFloat((distanceKm * PRICE_PER_KM).toFixed(2));
     }
-
     const weightPrice = parseFloat((weight * rate).toFixed(2));
     const total       = Math.max(distancePrice + weightPrice, MIN_PRICE);
-
     setPricing({ distanceKm, distancePrice, weightPrice, total });
   }, [watchedPickupCity, watchedDestCity, watchedCargoWeight, watchedPriority]);
 
-  // Validate current step fields before advancing
+  // Validate step fields — shake Next button if invalid
   const handleNext = async () => {
     const fields = STEP_FIELDS[step];
     const valid  = await trigger(fields);
-    if (valid) setStep((s) => s + 1);
+    if (valid) {
+      setStep((s) => s + 1);
+    } else {
+      // Shake the Next button to signal blocked
+      setShakeNext(true);
+      setTimeout(() => setShakeNext(false), 500);
+    }
   };
 
   const onSubmit = async (data) => {
@@ -114,46 +136,28 @@ const CreateShipment = () => {
     try {
       const pickup = CITIES.find((c) => c.name === data.pickupCity);
       const dest   = CITIES.find((c) => c.name === data.destCity);
-
       const payload = {
         pickup: {
-          address:      data.pickupAddress,
-          city:         data.pickupCity,
-          region:       data.pickupRegion,
-          lat:          pickup?.lat,
-          lng:          pickup?.lng,
-          contactName:  data.pickupContactName,
-          contactPhone: data.pickupContactPhone,
+          address: data.pickupAddress, city: data.pickupCity,
+          lat: pickup?.lat, lng: pickup?.lng,
+          contactName: data.pickupContactName, contactPhone: data.pickupContactPhone,
         },
         destination: {
-          address:      data.destAddress,
-          city:         data.destCity,
-          region:       data.destRegion,
-          lat:          dest?.lat,
-          lng:          dest?.lng,
-          contactName:  data.destContactName,
-          contactPhone: data.destContactPhone,
+          address: data.destAddress, city: data.destCity,
+          lat: dest?.lat, lng: dest?.lng,
+          contactName: data.destContactName, contactPhone: data.destContactPhone,
         },
         cargo: {
-          description:        data.cargoDescription,
-          category:           data.cargoCategory,
-          weight:             Number(data.cargoWeight),
-          quantity:           Number(data.cargoQuantity),
+          description: data.cargoDescription, category: data.cargoCategory,
+          weight: Number(data.cargoWeight), quantity: Number(data.cargoQuantity),
           specialInstructions: data.specialInstructions,
         },
         priority: data.priority,
       };
-
       const { data: res } = await api.post('/shipments', payload);
       toast.success(`Shipment created! Tracking: ${res.data.trackingNumber}`);
-
-      // Go to payment page with shipment details
       navigate('/customer/payment', {
-        state: {
-          shipmentId:     res.data.id,
-          trackingNumber: res.data.trackingNumber,
-          amount:         res.data.totalPrice,
-        },
+        state: { shipmentId: res.data.id, trackingNumber: res.data.trackingNumber, amount: res.data.totalPrice },
       });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create shipment');
@@ -188,7 +192,7 @@ const CreateShipment = () => {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="card space-y-4">
 
           {/* ── Step 0: Pickup & Delivery ── */}
@@ -198,21 +202,33 @@ const CreateShipment = () => {
                 <FiMapPin className="text-green-500" size={18} />
                 <h3 className="font-semibold text-gray-900 dark:text-white">Pickup Location</h3>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
-                  <select {...register('pickupCity', { required: 'City is required' })} className="input-field">
+                  <select
+                    {...register('pickupCity', { required: 'Pickup city is required' })}
+                    className={fc(errors.pickupCity, dirtyFields.pickupCity)}
+                  >
                     <option value="">Select city</option>
                     {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
-                  {errors.pickupCity && <p className="text-red-500 text-xs mt-1">{errors.pickupCity.message}</p>}
+                  <FieldError message={errors.pickupCity?.message} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
-                  <input {...register('pickupAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
-                  {errors.pickupAddress && <p className="text-red-500 text-xs mt-1">{errors.pickupAddress.message}</p>}
+                  <input
+                    {...register('pickupAddress', {
+                      required: 'Pickup address is required',
+                      minLength: { value: 5, message: 'Address too short' },
+                    })}
+                    className={fc(errors.pickupAddress, dirtyFields.pickupAddress)}
+                    placeholder="Street address, landmark"
+                  />
+                  <FieldError message={errors.pickupAddress?.message} />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
@@ -220,7 +236,14 @@ const CreateShipment = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
-                  <input {...register('pickupContactPhone')} className="input-field" placeholder="+251..." />
+                  <input
+                    {...register('pickupContactPhone', {
+                      pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Invalid phone number' },
+                    })}
+                    className={fc(errors.pickupContactPhone, dirtyFields.pickupContactPhone)}
+                    placeholder="+251..."
+                  />
+                  <FieldError message={errors.pickupContactPhone?.message} />
                 </div>
               </div>
 
@@ -230,21 +253,36 @@ const CreateShipment = () => {
                   <h3 className="font-semibold text-gray-900 dark:text-white">Delivery Location</h3>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
-                  <select {...register('destCity', { required: 'City is required' })} className="input-field">
+                  <select
+                    {...register('destCity', {
+                      required: 'Destination city is required',
+                      validate: (v) => v !== formData.pickupCity || 'Destination must differ from pickup',
+                    })}
+                    className={fc(errors.destCity, dirtyFields.destCity)}
+                  >
                     <option value="">Select city</option>
                     {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
-                  {errors.destCity && <p className="text-red-500 text-xs mt-1">{errors.destCity.message}</p>}
+                  <FieldError message={errors.destCity?.message} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
-                  <input {...register('destAddress', { required: 'Address is required' })} className="input-field" placeholder="Street address, landmark" />
-                  {errors.destAddress && <p className="text-red-500 text-xs mt-1">{errors.destAddress.message}</p>}
+                  <input
+                    {...register('destAddress', {
+                      required: 'Destination address is required',
+                      minLength: { value: 5, message: 'Address too short' },
+                    })}
+                    className={fc(errors.destAddress, dirtyFields.destAddress)}
+                    placeholder="Street address, landmark"
+                  />
+                  <FieldError message={errors.destAddress?.message} />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
@@ -252,17 +290,21 @@ const CreateShipment = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
-                  <input {...register('destContactPhone')} className="input-field" placeholder="+251..." />
+                  <input
+                    {...register('destContactPhone', {
+                      pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Invalid phone number' },
+                    })}
+                    className={fc(errors.destContactPhone, dirtyFields.destContactPhone)}
+                    placeholder="+251..."
+                  />
+                  <FieldError message={errors.destContactPhone?.message} />
                 </div>
               </div>
 
-              {/* Live price preview on step 0 */}
+              {/* Live distance preview */}
               {watchedPickupCity && watchedDestCity && watchedPickupCity !== watchedDestCity && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl p-3 mt-2"
-                >
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl p-3 mt-2">
                   <FiTruck className="text-primary-500 flex-shrink-0" size={18} />
                   <div className="text-sm">
                     <span className="text-gray-500">Estimated distance: </span>
@@ -283,16 +325,22 @@ const CreateShipment = () => {
                 <FiPackage className="text-primary-500" size={18} />
                 <h3 className="font-semibold text-gray-900 dark:text-white">Cargo Information</h3>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description *</label>
                 <textarea
-                  {...register('cargoDescription', { required: 'Description is required' })}
+                  {...register('cargoDescription', {
+                    required: 'Cargo description is required',
+                    minLength: { value: 5, message: 'Description too short' },
+                    maxLength: { value: 500, message: 'Max 500 characters' },
+                  })}
                   rows={3}
-                  className="input-field resize-none"
+                  className={`${fc(errors.cargoDescription, dirtyFields.cargoDescription)} resize-none`}
                   placeholder="Describe your cargo..."
                 />
-                {errors.cargoDescription && <p className="text-red-500 text-xs mt-1">{errors.cargoDescription.message}</p>}
+                <FieldError message={errors.cargoDescription?.message} />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
@@ -307,20 +355,31 @@ const CreateShipment = () => {
                   <input
                     {...register('cargoWeight', {
                       required: 'Weight is required',
-                      min: { value: 0.1, message: 'Min 0.1 kg' },
+                      min: { value: 0.1, message: 'Minimum weight is 0.1 kg' },
+                      max: { value: 50000, message: 'Maximum weight is 50,000 kg' },
                     })}
                     type="number"
                     step="0.1"
-                    className="input-field"
+                    className={fc(errors.cargoWeight, dirtyFields.cargoWeight)}
                     placeholder="0.0"
                   />
-                  {errors.cargoWeight && <p className="text-red-500 text-xs mt-1">{errors.cargoWeight.message}</p>}
+                  <FieldError message={errors.cargoWeight?.message} />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
-                  <input {...register('cargoQuantity')} type="number" min="1" className="input-field" />
+                  <input
+                    {...register('cargoQuantity', {
+                      min: { value: 1, message: 'Minimum 1' },
+                      max: { value: 9999, message: 'Maximum 9,999' },
+                    })}
+                    type="number"
+                    min="1"
+                    className={fc(errors.cargoQuantity, dirtyFields.cargoQuantity)}
+                  />
+                  <FieldError message={errors.cargoQuantity?.message} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
@@ -331,14 +390,18 @@ const CreateShipment = () => {
                   </select>
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Instructions</label>
                 <textarea
-                  {...register('specialInstructions')}
+                  {...register('specialInstructions', {
+                    maxLength: { value: 500, message: 'Max 500 characters' },
+                  })}
                   rows={2}
-                  className="input-field resize-none"
+                  className={`${fc(errors.specialInstructions, dirtyFields.specialInstructions)} resize-none`}
                   placeholder="Handle with care, keep upright, etc."
                 />
+                <FieldError message={errors.specialInstructions?.message} />
               </div>
             </>
           )}
@@ -351,7 +414,6 @@ const CreateShipment = () => {
                 <h3 className="font-semibold text-gray-900 dark:text-white">Review Your Shipment</h3>
               </div>
               <div className="space-y-3">
-
                 {/* Route */}
                 <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Route</p>
@@ -365,16 +427,12 @@ const CreateShipment = () => {
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{formData.pickupCity}</p>
                         <p className="text-xs text-gray-500">{formData.pickupAddress}</p>
-                        {formData.pickupContactName && (
-                          <p className="text-xs text-gray-400">{formData.pickupContactName} · {formData.pickupContactPhone}</p>
-                        )}
+                        {formData.pickupContactName && <p className="text-xs text-gray-400">{formData.pickupContactName} · {formData.pickupContactPhone}</p>}
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{formData.destCity}</p>
                         <p className="text-xs text-gray-500">{formData.destAddress}</p>
-                        {formData.destContactName && (
-                          <p className="text-xs text-gray-400">{formData.destContactName} · {formData.destContactPhone}</p>
-                        )}
+                        {formData.destContactName && <p className="text-xs text-gray-400">{formData.destContactName} · {formData.destContactPhone}</p>}
                       </div>
                     </div>
                     {pricing.distanceKm > 0 && (
@@ -390,26 +448,14 @@ const CreateShipment = () => {
                 <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Cargo</p>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    <div>
-                      <span className="text-gray-500 text-xs">Description</span>
-                      <p className="font-medium text-gray-900 dark:text-white">{formData.cargoDescription}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs">Category</span>
-                      <p className="font-medium capitalize text-gray-900 dark:text-white">{formData.cargoCategory}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs">Weight</span>
-                      <p className="font-medium text-gray-900 dark:text-white">{formData.cargoWeight} kg</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs">Priority</span>
-                      <p className="font-medium capitalize text-gray-900 dark:text-white">{formData.priority}</p>
-                    </div>
+                    <div><span className="text-gray-500 text-xs">Description</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoDescription}</p></div>
+                    <div><span className="text-gray-500 text-xs">Category</span><p className="font-medium capitalize text-gray-900 dark:text-white">{formData.cargoCategory}</p></div>
+                    <div><span className="text-gray-500 text-xs">Weight</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoWeight} kg</p></div>
+                    <div><span className="text-gray-500 text-xs">Priority</span><p className="font-medium capitalize text-gray-900 dark:text-white">{formData.priority}</p></div>
                   </div>
                 </div>
 
-                {/* Price breakdown */}
+                {/* Price */}
                 <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <FiDollarSign className="text-primary-500" size={16} />
@@ -426,19 +472,15 @@ const CreateShipment = () => {
                     </div>
                     {pricing.distancePrice + pricing.weightPrice < MIN_PRICE && (
                       <div className="flex justify-between text-gray-400 text-xs">
-                        <span>Minimum fare applied</span>
-                        <span>ETB {MIN_PRICE}</span>
+                        <span>Minimum fare applied</span><span>ETB {MIN_PRICE}</span>
                       </div>
                     )}
                   </div>
                   <div className="border-t border-primary-200 dark:border-primary-700 pt-2 flex justify-between items-center">
                     <span className="font-semibold text-gray-700 dark:text-white">Total</span>
-                    <span className="text-2xl font-bold text-primary-600">
-                      ETB {pricing.total.toLocaleString()}
-                    </span>
+                    <span className="text-2xl font-bold text-primary-600">ETB {pricing.total.toLocaleString()}</span>
                   </div>
                 </div>
-
               </div>
             </>
           )}
@@ -456,20 +498,19 @@ const CreateShipment = () => {
           </button>
 
           {step < steps.length - 1 ? (
-            <button
+            <motion.button
               type="button"
               onClick={handleNext}
+              animate={shakeNext ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : {}}
+              transition={{ duration: 0.4 }}
               className="btn-primary flex items-center gap-2"
             >
               Next <FiArrowRight size={16} />
-            </button>
+            </motion.button>
           ) : (
             <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
               {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Submitting...
-                </>
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</>
               ) : (
                 <><FiCheckCircle size={16} /> Submit & Pay</>
               )}
