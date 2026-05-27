@@ -1,5 +1,10 @@
 const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+  // Only log stack in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err.stack);
+  } else {
+    console.error(`[${new Date().toISOString()}] ${err.name}: ${err.message}`);
+  }
 
   // Sequelize validation error
   if (err.name === 'SequelizeValidationError') {
@@ -33,7 +38,9 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Server Error',
+    message: process.env.NODE_ENV === 'production' && !err.statusCode
+      ? 'An unexpected error occurred'
+      : err.message || 'Server Error',
   });
 };
 

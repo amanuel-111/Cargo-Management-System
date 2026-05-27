@@ -69,7 +69,17 @@ exports.updateProfile = async (req, res, next) => {
 // PUT /api/users/:id  (admin)
 exports.updateUser = async (req, res, next) => {
   try {
-    const { password, ...updates } = req.body;
+    // Prevent admin from accidentally locking themselves out
+    if (Number(req.params.id) === req.user.id && req.body.isActive === false)
+      return res.status(400).json({ success: false, message: 'You cannot deactivate your own account' });
+
+    // Whitelist updatable fields — password changes must go through /auth/update-password
+    const allowed = ['firstName','lastName','phone','role','isActive','isEmailVerified',
+      'addressStreet','addressCity','addressRegion','licenseNumber','licenseExpiry'];
+    const { password, ...body } = req.body;
+    const updates = {};
+    allowed.forEach((f) => { if (body[f] !== undefined) updates[f] = body[f]; });
+
     await User.update(updates, { where: { id: req.params.id } });
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -82,6 +92,28 @@ exports.updateUser = async (req, res, next) => {
 // DELETE /api/users/:id  (soft-delete)
 exports.deleteUser = async (req, res, next) => {
   try {
+    // Prevent self-deactivation
+    if (Number(req.params.id) === req.user.id)
+      return res.status(400).json({ success: false, message: 'You cannot deactivate your own account' });
+
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Block deactivating a driver with active deliveries
+    if (user.role === 'driver') {
+      const activeDelivery = await Shipment.findOne({
+        where: {
+          driverId: user.id,
+          status: { [Op.in]: ['assigned','picked_up','in_transit','out_for_delivery'] },
+        },
+      });
+      if (activeDelivery)
+        return res.status(400).json({
+          success: false,
+          message: `Cannot deactivate driver — they have an active delivery (#${activeDelivery.trackingNumber})`,
+        });
+    }
+
     await User.update({ isActive: false }, { where: { id: req.params.id } });
     res.status(200).json({ success: true, message: 'User deactivated' });
   } catch (error) {

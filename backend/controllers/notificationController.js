@@ -58,7 +58,11 @@ exports.markAllAsRead = async (req, res, next) => {
 // DELETE /api/notifications/:id
 exports.deleteNotification = async (req, res, next) => {
   try {
-    await Notification.destroy({ where: { id: req.params.id, recipientId: req.user.id } });
+    const deleted = await Notification.destroy({
+      where: { id: req.params.id, recipientId: req.user.id },
+    });
+    if (!deleted)
+      return res.status(404).json({ success: false, message: 'Notification not found' });
     res.status(200).json({ success: true, message: 'Notification deleted' });
   } catch (error) {
     next(error);

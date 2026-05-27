@@ -116,15 +116,26 @@ exports.verifyEmail = async (req, res, next) => {
 exports.forgotPassword = async (req, res, next) => {
   try {
     const user = await User.findOne({ where: { email: req.body.email } });
-    if (!user) return res.status(404).json({ success: false, message: 'No user with that email' });
+
+    // Always return the same response to prevent user enumeration
+    const successMsg = { success: true, message: 'If that email is registered, a password reset link has been sent' };
+
+    if (!user) return res.status(200).json(successMsg);
 
     const resetToken = user.getResetPasswordToken();
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-    await emailService.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+    try {
+      const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+      await emailService.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+    } catch (e) {
+      // Clear the token if email fails
+      await user.update({ resetPasswordToken: null, resetPasswordExpire: null });
+      console.error('Password reset email failed:', e.message);
+      return res.status(500).json({ success: false, message: 'Email could not be sent. Please try again later.' });
+    }
 
-    res.status(200).json({ success: true, message: 'Password reset email sent' });
+    res.status(200).json(successMsg);
   } catch (error) {
     next(error);
   }
