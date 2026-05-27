@@ -71,7 +71,12 @@ const PORT = process.env.PORT || 5000;
 
 const start = async () => {
   await connectDB();
-  await sequelize.sync({ alter: true, logging: false });
+  // Use alter:true only in development, and only when schema actually changes
+  // In production use migrations instead
+  const syncOptions = process.env.NODE_ENV === 'development'
+    ? { alter: { drop: false }, logging: false }  // alter but never drop columns
+    : { logging: false };                          // production: no-op sync
+  await sequelize.sync(syncOptions);
   console.log('✅ All MySQL tables synced');
   server.listen(PORT, () =>
     console.log(`🚀 Server running on port ${PORT} | ENV: ${process.env.NODE_ENV}`)
