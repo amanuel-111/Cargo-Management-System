@@ -161,6 +161,15 @@ exports.approvePayment = async (req, res, next) => {
         status:        'confirmed',
       });
 
+      // Add status history entry
+      const { ShipmentStatusHistory } = require('../models');
+      await ShipmentStatusHistory.create({
+        shipmentId:  shipment.id,
+        status:      'confirmed',
+        note:        `Payment approved by ${req.user.firstName} ${req.user.lastName} via ${payment.method}`,
+        updatedById: req.user.id,
+      });
+
       // Notify customer
       await notificationService.createNotification({
         recipientId: payment.customerId,

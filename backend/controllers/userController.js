@@ -93,9 +93,20 @@ exports.deleteUser = async (req, res, next) => {
 exports.getDrivers = async (req, res, next) => {
   try {
     const where = { role: 'driver', isActive: true };
-    if (req.query.available === 'true') where.isOnline = true;
 
-    const drivers = await User.findAll({ where, order: [['createdAt', 'DESC']] });
+    let drivers = await User.findAll({ where, order: [['createdAt', 'DESC']] });
+
+    // If available=true, filter out drivers who are on an active delivery
+    if (req.query.available === 'true') {
+      const busyDriverIds = (await Shipment.findAll({
+        where: { status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] } },
+        attributes: ['driverId'],
+        raw: true,
+      })).map((s) => s.driverId).filter(Boolean);
+
+      drivers = drivers.filter((d) => !busyDriverIds.includes(d.id));
+    }
+
     res.status(200).json({ success: true, count: drivers.length, data: drivers });
   } catch (error) {
     next(error);

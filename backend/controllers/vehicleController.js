@@ -58,8 +58,16 @@ exports.getVehicle = async (req, res, next) => {
 // PUT /api/vehicles/:id
 exports.updateVehicle = async (req, res, next) => {
   try {
-    await Vehicle.update(req.body, { where: { id: req.params.id } });
-    const vehicle = await Vehicle.findByPk(req.params.id);
+    // Whitelist updatable fields — prevent overwriting sensitive columns
+    const allowed = ['plateNumber','type','brand','model','year','capacity','volumeCapacity',
+      'fuelType','status','insuranceExpiry','registrationExpiry','lastMaintenanceDate','nextMaintenanceDate','mileage'];
+    const updates = {};
+    allowed.forEach((f) => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+
+    await Vehicle.update(updates, { where: { id: req.params.id } });
+    const vehicle = await Vehicle.findByPk(req.params.id, {
+      include: [{ model: User, as: 'assignedDriver', attributes: ['id','firstName','lastName','phone'], required: false }],
+    });
     if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
     res.status(200).json({ success: true, data: vehicle });
   } catch (error) {

@@ -279,8 +279,8 @@ exports.updateStatus = async (req, res, next) => {
 
     // Enforce valid status transitions
     const TRANSITIONS = {
-      confirmed:        ['assigned', 'cancelled'],
-      assigned:         ['picked_up', 'cancelled'],
+      confirmed:        ['assigned'],
+      assigned:         ['picked_up'],
       picked_up:        ['in_transit', 'failed'],
       in_transit:       ['out_for_delivery', 'failed'],
       out_for_delivery: ['delivered', 'failed'],
@@ -429,8 +429,17 @@ exports.rateShipment = async (req, res, next) => {
     const { score, comment } = req.body;
     const shipment = await Shipment.findByPk(req.params.id);
     if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+
+    // Only the customer who owns the shipment can rate it
+    if (shipment.customerId !== req.user.id)
+      return res.status(403).json({ success: false, message: 'Not authorized to rate this shipment' });
+
     if (shipment.status !== 'delivered')
       return res.status(400).json({ success: false, message: 'Can only rate delivered shipments' });
+
+    // Prevent re-rating
+    if (shipment.ratingScore)
+      return res.status(400).json({ success: false, message: 'You have already rated this shipment' });
 
     await shipment.update({ ratingScore: score, ratingComment: comment, ratedAt: new Date() });
 
