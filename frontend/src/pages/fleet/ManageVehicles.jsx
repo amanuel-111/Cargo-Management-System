@@ -102,7 +102,7 @@ const VehicleForm = ({ onSubmit, loading, submitLabel, showStatus, onCancel, def
 const ManageVehicles = () => {
   const queryClient = useQueryClient();
   const [search,        setSearch]        = useState('');
-  const [statusFilter,  setStatusFilter]  = useState('');
+  const [statusFilter,  setStatusFilter]  = useState('available');
   const [showAdd,       setShowAdd]       = useState(false);
   const [editVehicle,   setEditVehicle]   = useState(null);
   const [assignVehicle, setAssignVehicle] = useState(null);
