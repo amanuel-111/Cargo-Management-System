@@ -17,10 +17,17 @@ exports.submitPayment = async (req, res, next) => {
     if (shipment.isPaid)
       return res.status(400).json({ success: false, message: 'Shipment is already paid' });
 
-    // Prevent duplicate pending payments
-    const existing = await Payment.findOne({ where: { shipmentId, status: 'pending' } });
+    // Prevent duplicate pending payments (but allow resubmission after rejection)
+    const existing = await Payment.findOne({
+      where: { shipmentId, status: 'pending' },
+    });
     if (existing)
       return res.status(400).json({ success: false, message: 'A payment is already pending review for this shipment' });
+
+    // Also block if already approved
+    const approved = await Payment.findOne({ where: { shipmentId, status: 'approved' } });
+    if (approved)
+      return res.status(400).json({ success: false, message: 'Payment for this shipment has already been approved' });
 
     const screenshotUrl = req.file?.path || null;
 

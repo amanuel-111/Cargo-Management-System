@@ -206,9 +206,43 @@ exports.assignShipment = async (req, res, next) => {
     const shipment = await Shipment.findByPk(req.params.id);
     if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
 
+    // Must be confirmed (payment approved) before assigning
+    if (shipment.status !== 'confirmed')
+      return res.status(400).json({
+        success: false,
+        message: `Cannot assign shipment with status '${shipment.status}'. Payment must be approved first.`,
+      });
+
+    // Validate driver
     const driver = await User.findByPk(driverId);
     if (!driver || driver.role !== 'driver')
       return res.status(400).json({ success: false, message: 'Invalid driver' });
+    if (!driver.isActive)
+      return res.status(400).json({ success: false, message: 'Driver is not active' });
+
+    // Check driver not already on an active delivery
+    const { Op } = require('sequelize');
+    const activeDelivery = await Shipment.findOne({
+      where: {
+        driverId,
+        status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+      },
+    });
+    if (activeDelivery)
+      return res.status(400).json({
+        success: false,
+        message: `Driver is already on an active delivery (#${activeDelivery.trackingNumber})`,
+      });
+
+    // Validate vehicle
+    const vehicle = await Vehicle.findByPk(vehicleId);
+    if (!vehicle || !vehicle.isActive)
+      return res.status(400).json({ success: false, message: 'Invalid vehicle' });
+    if (vehicle.status !== 'available')
+      return res.status(400).json({
+        success: false,
+        message: `Vehicle is not available (current status: ${vehicle.status})`,
+      });
 
     await shipment.update({ driverId, vehicleId, assignedById: req.user.id, status: 'assigned' });
     await ShipmentStatusHistory.create({
@@ -221,6 +255,10 @@ exports.assignShipment = async (req, res, next) => {
 
     await notificationService.createNotification({ recipientId: driverId, type: 'driver_assigned', title: 'New Delivery Assigned', message: `You have been assigned shipment #${shipment.trackingNumber}`, shipmentId: shipment.id });
     await notificationService.createNotification({ recipientId: shipment.customerId, type: 'shipment_assigned', title: 'Driver Assigned', message: `A driver has been assigned to your shipment #${shipment.trackingNumber}`, shipmentId: shipment.id });
+
+    if (req.io) {
+      req.io.to(`user_${driverId}`).emit('newAssignment', { shipmentId: shipment.id, trackingNumber: shipment.trackingNumber });
+    }
 
     const result = await getShipmentWithRelations(shipment.id);
     res.status(200).json({ success: true, data: result });
@@ -239,6 +277,28 @@ exports.updateStatus = async (req, res, next) => {
     if (req.user.role === 'driver' && shipment.driverId !== req.user.id)
       return res.status(403).json({ success: false, message: 'Not authorized' });
 
+    // Enforce valid status transitions
+    const TRANSITIONS = {
+      confirmed:        ['assigned', 'cancelled'],
+      assigned:         ['picked_up', 'cancelled'],
+      picked_up:        ['in_transit', 'failed'],
+      in_transit:       ['out_for_delivery', 'failed'],
+      out_for_delivery: ['delivered', 'failed'],
+    };
+    const allowed = TRANSITIONS[shipment.status];
+    if (!allowed) {
+      return res.status(400).json({
+        success: false,
+        message: `Shipment with status '${shipment.status}' cannot be updated`,
+      });
+    }
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot transition from '${shipment.status}' to '${status}'. Allowed: ${allowed.join(', ')}`,
+      });
+    }
+
     await shipment.update({ status, ...(status === 'delivered' ? { actualArrival: new Date() } : {}) });
     await ShipmentStatusHistory.create({ shipmentId: shipment.id, status, note, locationLat, locationLng, updatedById: req.user.id });
 
@@ -247,15 +307,27 @@ exports.updateStatus = async (req, res, next) => {
       await User.increment('totalDeliveries', { where: { id: shipment.driverId } });
     }
 
+    if (status === 'failed' || status === 'cancelled') {
+      if (shipment.vehicleId) {
+        await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+      }
+    }
+
     const statusMessages = {
-      picked_up: 'Your cargo has been picked up',
-      in_transit: 'Your shipment is on the way',
+      picked_up:        'Your cargo has been picked up',
+      in_transit:       'Your shipment is on the way',
       out_for_delivery: 'Your shipment is out for delivery',
-      delivered: 'Your shipment has been delivered',
-      failed: 'Delivery attempt failed',
+      delivered:        'Your shipment has been delivered',
+      failed:           'Delivery attempt failed — please contact support',
     };
     if (statusMessages[status]) {
-      await notificationService.createNotification({ recipientId: shipment.customerId, type: `shipment_${status}`, title: 'Shipment Update', message: `${statusMessages[status]} - #${shipment.trackingNumber}`, shipmentId: shipment.id });
+      await notificationService.createNotification({
+        recipientId: shipment.customerId,
+        type: `shipment_${status}`,
+        title: 'Shipment Update',
+        message: `${statusMessages[status]} - #${shipment.trackingNumber}`,
+        shipmentId: shipment.id,
+      });
     }
 
     if (req.io) req.io.to(`shipment_${shipment.id}`).emit('statusUpdate', { shipmentId: shipment.id, status, note });
@@ -273,15 +345,42 @@ exports.uploadProofOfDelivery = async (req, res, next) => {
     const shipment = await Shipment.findByPk(req.params.id);
     if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
 
+    if (shipment.driverId !== req.user.id)
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+
+    if (shipment.status !== 'out_for_delivery')
+      return res.status(400).json({
+        success: false,
+        message: `Proof of delivery can only be uploaded when status is 'out_for_delivery'`,
+      });
+
     await shipment.update({
-      podPhoto: req.file?.path || '',
+      podPhoto:       req.file?.path || '',
       podDeliveredTo: deliveredTo,
-      podNotes: notes,
-      podTimestamp: new Date(),
-      status: 'delivered',
-      actualArrival: new Date(),
+      podNotes:       notes,
+      podTimestamp:   new Date(),
+      status:         'delivered',
+      actualArrival:  new Date(),
     });
-    await ShipmentStatusHistory.create({ shipmentId: shipment.id, status: 'delivered', note: 'Proof of delivery uploaded', updatedById: req.user.id });
+    await ShipmentStatusHistory.create({
+      shipmentId: shipment.id,
+      status: 'delivered',
+      note: `Proof of delivery uploaded. Delivered to: ${deliveredTo}`,
+      updatedById: req.user.id,
+    });
+
+    await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+    await User.increment('totalDeliveries', { where: { id: shipment.driverId } });
+
+    await notificationService.createNotification({
+      recipientId: shipment.customerId,
+      type: 'shipment_delivered',
+      title: 'Shipment Delivered',
+      message: `Your shipment #${shipment.trackingNumber} has been delivered to ${deliveredTo}`,
+      shipmentId: shipment.id,
+    });
+
+    if (req.io) req.io.to(`shipment_${shipment.id}`).emit('statusUpdate', { shipmentId: shipment.id, status: 'delivered' });
 
     res.status(200).json({ success: true, data: await getShipmentWithRelations(shipment.id) });
   } catch (error) {
