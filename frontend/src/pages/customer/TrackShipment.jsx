@@ -272,7 +272,37 @@ const TrackShipment = () => {
         </div>
       )}
 
-      {/* Status History */}
+      {/* Cancel button — only for pending or confirmed */}
+      {['pending', 'confirmed'].includes(shipment.status) && (
+        <div className="card border border-red-100 dark:border-red-900">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-red-700 dark:text-red-400 text-sm">Cancel Shipment</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {shipment.status === 'confirmed'
+                  ? 'Payment will need to be refunded manually'
+                  : 'No charges will apply'}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!window.confirm('Are you sure you want to cancel this shipment?')) return;
+                try {
+                  await api.put(`/shipments/${id}/cancel`, { reason: 'Cancelled by customer' });
+                  toast.success('Shipment cancelled');
+                  queryClient.invalidateQueries(['shipment', id]);
+                  queryClient.invalidateQueries(['customer-shipments-recent']);
+                } catch (err) {
+                  toast.error(err.response?.data?.message || 'Cannot cancel this shipment');
+                }
+              }}
+              className="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-3 py-1.5 rounded-lg transition-colors border border-red-200"
+            >
+              Cancel Shipment
+            </button>
+          </div>
+        </div>
+      )}
       {shipment.statusHistory?.length > 0 && (
         <div className="card">
           <p className="text-xs font-semibold text-gray-500 uppercase mb-4">Status History</p>

@@ -284,8 +284,7 @@ exports.updateStatus = async (req, res, next) => {
       picked_up:        ['in_transit', 'failed'],
       in_transit:       ['out_for_delivery', 'failed'],
       out_for_delivery: ['delivered', 'failed'],
-    };
-    const allowed = TRANSITIONS[shipment.status];
+    };    const allowed = TRANSITIONS[shipment.status];
     if (!allowed) {
       return res.status(400).json({
         success: false,
@@ -393,14 +392,30 @@ exports.cancelShipment = async (req, res, next) => {
   try {
     const shipment = await Shipment.findByPk(req.params.id);
     if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
-    if (['delivered', 'cancelled'].includes(shipment.status))
-      return res.status(400).json({ success: false, message: 'Cannot cancel this shipment' });
+
+    // Only allow cancel on pending or confirmed (before driver is assigned)
+    const cancellable = ['pending', 'confirmed'];
+    if (!cancellable.includes(shipment.status))
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel a shipment with status '${shipment.status}'. Only pending or confirmed shipments can be cancelled.`,
+      });
+
     if (req.user.role === 'customer' && shipment.customerId !== req.user.id)
       return res.status(403).json({ success: false, message: 'Not authorized' });
 
     await shipment.update({ status: 'cancelled' });
-    await ShipmentStatusHistory.create({ shipmentId: shipment.id, status: 'cancelled', note: req.body.reason || 'Cancelled by user', updatedById: req.user.id });
-    if (shipment.vehicleId) await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+    await ShipmentStatusHistory.create({
+      shipmentId: shipment.id,
+      status: 'cancelled',
+      note: req.body.reason || 'Cancelled by user',
+      updatedById: req.user.id,
+    });
+
+    // Free vehicle if one was assigned
+    if (shipment.vehicleId) {
+      await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+    }
 
     res.status(200).json({ success: true, data: shipment });
   } catch (error) {

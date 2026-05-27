@@ -31,6 +31,9 @@ exports.submitPayment = async (req, res, next) => {
 
     const screenshotUrl = req.file?.path || null;
 
+    if (!screenshotUrl)
+      return res.status(400).json({ success: false, message: 'Payment screenshot is required' });
+
     const payment = await Payment.create({
       shipmentId,
       customerId,
