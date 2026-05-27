@@ -44,6 +44,7 @@ import ManageVehicles from './pages/fleet/ManageVehicles';
 import ShipmentAssignment from './pages/fleet/ShipmentAssignment';
 import TrackingCenter from './pages/fleet/TrackingCenter';
 import FleetReports from './pages/fleet/Reports';
+import PaymentApproval from './pages/fleet/PaymentApproval';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -127,7 +128,7 @@ function App() {
 
         {/* Fleet Manager Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<RoleRoute roles={['fleet_manager']} />}>
+          <Route element={<RoleRoute roles={['fleet_manager', 'admin']} />}>
             <Route element={<DashboardLayout />}>
               <Route path="/fleet/dashboard" element={<FleetDashboard />} />
               <Route path="/fleet/drivers" element={<ManageDrivers />} />
@@ -135,6 +136,7 @@ function App() {
               <Route path="/fleet/assignments" element={<ShipmentAssignment />} />
               <Route path="/fleet/tracking" element={<TrackingCenter />} />
               <Route path="/fleet/reports" element={<FleetReports />} />
+              <Route path="/fleet/payments" element={<PaymentApproval />} />
             </Route>
           </Route>
         </Route>

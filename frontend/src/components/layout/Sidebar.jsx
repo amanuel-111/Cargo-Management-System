@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiTruck, FiHome, FiPackage, FiMap, FiUsers, FiBarChart2,
   FiSettings, FiLogOut, FiChevronLeft, FiChevronRight, FiBell,
-  FiNavigation, FiClipboard, FiTool, FiActivity,
+  FiNavigation, FiClipboard, FiTool, FiActivity, FiDollarSign,
 } from 'react-icons/fi';
 import { toggleSidebar } from '../../redux/slices/uiSlice';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,18 +27,20 @@ const navConfig = {
     { label: 'Profile', to: '/driver/profile', icon: FiSettings },
   ],
   fleet_manager: [
-    { label: 'Dashboard', to: '/fleet/dashboard', icon: FiHome },
-    { label: 'Manage Drivers', to: '/fleet/drivers', icon: FiUsers },
-    { label: 'Manage Vehicles', to: '/fleet/vehicles', icon: FiTruck },
-    { label: 'Assignments', to: '/fleet/assignments', icon: FiClipboard },
-    { label: 'Tracking Center', to: '/fleet/tracking', icon: FiMap },
-    { label: 'Reports', to: '/fleet/reports', icon: FiBarChart2 },
+    { label: 'Dashboard',        to: '/fleet/dashboard',   icon: FiHome      },
+    { label: 'Manage Drivers',   to: '/fleet/drivers',     icon: FiUsers     },
+    { label: 'Manage Vehicles',  to: '/fleet/vehicles',    icon: FiTruck     },
+    { label: 'Assignments',      to: '/fleet/assignments', icon: FiClipboard },
+    { label: 'Payment Approval', to: '/fleet/payments',    icon: FiDollarSign },
+    { label: 'Tracking Center',  to: '/fleet/tracking',    icon: FiMap       },
+    { label: 'Reports',          to: '/fleet/reports',     icon: FiBarChart2 },
   ],
   admin: [
-    { label: 'Dashboard', to: '/admin/dashboard', icon: FiHome },
-    { label: 'User Management', to: '/admin/users', icon: FiUsers },
-    { label: 'Analytics', to: '/admin/analytics', icon: FiActivity },
-    { label: 'Settings', to: '/admin/settings', icon: FiTool },
+    { label: 'Dashboard',        to: '/admin/dashboard', icon: FiHome      },
+    { label: 'User Management',  to: '/admin/users',     icon: FiUsers     },
+    { label: 'Payment Approval', to: '/fleet/payments',  icon: FiDollarSign },
+    { label: 'Analytics',        to: '/admin/analytics', icon: FiActivity  },
+    { label: 'Settings',         to: '/admin/settings',  icon: FiTool      },
   ],
 };
 
