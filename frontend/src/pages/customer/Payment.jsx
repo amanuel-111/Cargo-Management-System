@@ -95,7 +95,13 @@ const Payment = () => {
       await api.post('/payments', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSubmitted(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed. Please try again.');
+      const msg = err.response?.data?.message || 'Submission failed. Please try again.';
+      // If already approved, show success state
+      if (msg.includes('already been approved')) {
+        setSubmitted(true);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

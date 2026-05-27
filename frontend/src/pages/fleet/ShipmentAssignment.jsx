@@ -83,7 +83,7 @@ const ShipmentAssignment = () => {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 dark:border-dark-700">
-              {['Tracking #', 'Customer', 'Route', 'Weight', 'Priority', 'Date', showAssign ? 'Action' : 'Status'].map((h) => (
+              {['Tracking #', 'Customer', 'Route', 'Weight', 'Amount', 'Priority', 'Date', showAssign ? 'Action' : 'Status'].map((h) => (
                 <th key={h} className="text-left py-3 px-2 text-gray-500 font-medium text-xs uppercase">{h}</th>
               ))}
             </tr>
@@ -101,6 +101,9 @@ const ShipmentAssignment = () => {
                   <div className="text-gray-400">→ {s.destCity}</div>
                 </td>
                 <td className="py-3 px-2 text-xs text-gray-600">{s.cargoWeight} kg</td>
+                <td className="py-3 px-2 text-xs font-semibold text-gray-900 dark:text-white">
+                  ETB {Number(s.totalPrice || 0).toLocaleString()}
+                </td>
                 <td className="py-3 px-2">
                   <span className={`badge text-xs ${
                     s.priority === 'urgent'
@@ -170,7 +173,9 @@ const ShipmentAssignment = () => {
                 {pending.length}
               </span>
             </h3>
-            <span className="text-xs text-gray-400">Cannot assign until payment is approved</span>
+            <a href="/fleet/payments" className="text-xs text-primary-500 hover:text-primary-600 font-medium">
+              Review Payments →
+            </a>
           </div>
           <ShipmentTable
             shipments={pending}
