@@ -6,6 +6,7 @@ const ShipmentStatusHistory = require('./ShipmentStatusHistory');
 const Notification = require('./Notification');
 const LocationUpdate = require('./LocationUpdate');
 const Report = require('./Report');
+const Payment = require('./Payment');
 
 // ── Associations ──────────────────────────────────────────────
 
@@ -43,4 +44,10 @@ LocationUpdate.belongsTo(Vehicle, { foreignKey: 'vehicleId', constraints: false 
 // Reports
 Report.belongsTo(User, { as: 'generatedBy', foreignKey: 'generatedById' });
 
-module.exports = { sequelize, User, Vehicle, Shipment, ShipmentStatusHistory, Notification, LocationUpdate, Report };
+// Payments
+Payment.belongsTo(Shipment, { foreignKey: 'shipmentId' });
+Payment.belongsTo(User, { as: 'customer', foreignKey: 'customerId' });
+Payment.belongsTo(User, { as: 'reviewedBy', foreignKey: 'reviewedById', constraints: false });
+Shipment.hasMany(Payment, { as: 'payments', foreignKey: 'shipmentId' });
+
+module.exports = { sequelize, User, Vehicle, Shipment, ShipmentStatusHistory, Notification, LocationUpdate, Report, Payment };

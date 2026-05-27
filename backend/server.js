@@ -20,6 +20,7 @@ const vehicleRoutes = require('./routes/vehicles');
 const trackingRoutes = require('./routes/tracking');
 const notificationRoutes = require('./routes/notifications');
 const analyticsRoutes = require('./routes/analytics');
+const paymentRoutes   = require('./routes/payments');
 
 const app = express();
 const server = http.createServer(app);
@@ -61,6 +62,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/payments',  paymentRoutes);
 
 app.use('*', (req, res) => res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` }));
 app.use(errorHandler);

@@ -81,25 +81,21 @@ const Payment = () => {
     e.preventDefault();
     if (!selected)    { toast.error('Select a payment method'); return; }
     if (!screenshot)  { toast.error('Upload your payment screenshot'); return; }
+    if (!shipmentId)  { toast.error('No shipment linked to this payment'); return; }
 
     setLoading(true);
     try {
       const form = new FormData();
-      form.append('screenshot', screenshot);
-      form.append('method', selected);
-      if (txId)       form.append('transactionId', txId);
-      if (note)       form.append('note', note);
-      if (shipmentId) form.append('shipmentId', shipmentId);
+      form.append('screenshot',  screenshot);
+      form.append('method',      selected);
+      form.append('shipmentId',  shipmentId);
+      if (txId) form.append('transactionId', txId.trim());
+      if (note) form.append('note', note.trim());
 
       await api.post('/payments', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSubmitted(true);
     } catch (err) {
-      // If endpoint not yet wired, still show success for demo
-      if (err.response?.status === 404) {
-        setSubmitted(true);
-      } else {
-        toast.error(err.response?.data?.message || 'Submission failed');
-      }
+      toast.error(err.response?.data?.message || 'Submission failed. Please try again.');
     } finally {
       setLoading(false);
     }
