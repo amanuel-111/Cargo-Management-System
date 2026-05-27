@@ -1,23 +1,41 @@
-import React, { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar, FiDollarSign } from 'react-icons/fi';
 import api from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
+import Modal from '../../components/common/Modal';
 import { SkeletonCard } from '../../components/common/LoadingSkeleton';
 import { formatDate, formatDateTime, formatCurrency } from '../../utils/helpers';
 import { joinShipmentRoom, leaveShipmentRoom } from '../../services/socketService';
+import toast from 'react-hot-toast';
 
 const STATUS_STEPS = ['pending','confirmed','assigned','picked_up','in_transit','out_for_delivery','delivered'];
 
 const TrackShipment = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [ratingScore, setRatingScore]     = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
 
   const { data: shipment, isLoading } = useQuery({
     queryKey: ['shipment', id],
     queryFn: () => api.get(`/shipments/${id}`).then((r) => r.data.data),
     refetchInterval: 30000,
     enabled: !!id,
+  });
+
+  const rateMutation = useMutation({
+    mutationFn: ({ score, comment }) =>
+      api.post(`/shipments/${id}/rate`, { score, comment }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['shipment', id]);
+      toast.success('Thank you for your rating!');
+      setShowRateModal(false);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Rating failed'),
   });
 
   useEffect(() => {
@@ -201,16 +219,58 @@ const TrackShipment = () => {
             <span className="text-gray-900 dark:text-white">Total</span>
             <span className="text-primary-600 text-lg">{formatCurrency(shipment.totalPrice)}</span>
           </div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center justify-between mt-2">
             <span className={`badge text-xs ${shipment.isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
               {shipment.isPaid ? '✓ Paid' : 'Payment Pending'}
             </span>
+            {!shipment.isPaid && shipment.status === 'pending' && (
+              <Link
+                to="/customer/payment"
+                state={{ shipmentId: shipment.id, trackingNumber: shipment.trackingNumber, amount: shipment.totalPrice }}
+                className="flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <FiDollarSign size={13} /> Pay Now
+              </Link>
+            )}
             {shipment.paymentMethod && (
               <span className="text-xs text-gray-400 capitalize">{shipment.paymentMethod}</span>
             )}
           </div>
         </div>
       </div>
+
+      {/* Rate delivery */}
+      {shipment.status === 'delivered' && !shipment.ratingScore && (
+        <div className="card bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-green-800 dark:text-green-400 text-sm">Delivery completed!</p>
+              <p className="text-green-700 dark:text-green-500 text-xs mt-0.5">How was your experience?</p>
+            </div>
+            <button
+              onClick={() => setShowRateModal(true)}
+              className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <FiStar size={13} /> Rate Delivery
+            </button>
+          </div>
+        </div>
+      )}
+
+      {shipment.ratingScore && (
+        <div className="card">
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Your Rating</p>
+          <div className="flex items-center gap-2">
+            {[1,2,3,4,5].map((n) => (
+              <FiStar key={n} size={18} className={n <= shipment.ratingScore ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+            ))}
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">{shipment.ratingScore}/5</span>
+          </div>
+          {shipment.ratingComment && (
+            <p className="text-sm text-gray-500 mt-2 italic">"{shipment.ratingComment}"</p>
+          )}
+        </div>
+      )}
 
       {/* Status History */}
       {shipment.statusHistory?.length > 0 && (
@@ -232,6 +292,69 @@ const TrackShipment = () => {
           </div>
         </div>
       )}
+
+      {/* Rate Modal */}
+      <Modal isOpen={showRateModal} onClose={() => setShowRateModal(false)} title="Rate Your Delivery" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            How was your delivery experience for shipment <span className="font-mono font-semibold text-primary-500">{shipment.trackingNumber}</span>?
+          </p>
+
+          {/* Star selector */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating *</p>
+            <div className="flex items-center gap-2">
+              {[1,2,3,4,5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRatingScore(n)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <FiStar
+                    size={28}
+                    className={n <= ratingScore ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 hover:text-yellow-300'}
+                  />
+                </button>
+              ))}
+              {ratingScore > 0 && (
+                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">
+                  {['','Poor','Fair','Good','Very Good','Excellent'][ratingScore]}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Comment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Comment <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              rows={3}
+              className="input-field resize-none"
+              placeholder="Share your experience..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setShowRateModal(false)} className="btn-secondary flex-1">Cancel</button>
+            <button
+              onClick={() => rateMutation.mutate({ score: ratingScore, comment: ratingComment })}
+              disabled={ratingScore === 0 || rateMutation.isPending}
+              className="btn-primary flex-1 flex items-center justify-center gap-2"
+            >
+              {rateMutation.isPending ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</>
+              ) : (
+                <><FiStar size={14} />Submit Rating</>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

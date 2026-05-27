@@ -2,7 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { FiPackage, FiTruck, FiCheckCircle, FiClock, FiPlus, FiArrowRight } from 'react-icons/fi';
+import {
+  FiPackage, FiTruck, FiCheckCircle, FiClock,
+  FiPlus, FiArrowRight, FiDollarSign, FiAlertCircle,
+} from 'react-icons/fi';
 import api from '../../services/api';
 import StatCard from '../../components/common/StatCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -13,19 +16,30 @@ import { useSelector } from 'react-redux';
 const CustomerDashboard = () => {
   const { user } = useSelector((state) => state.auth);
 
-  const { data: shipmentsData, isLoading } = useQuery({
-    queryKey: ['customer-shipments'],
+  // Fetch all shipments for accurate stats
+  const { data: allData } = useQuery({
+    queryKey: ['customer-shipments-all'],
+    queryFn: () => api.get('/shipments?limit=100').then((r) => r.data),
+  });
+
+  // Fetch recent 5 for the table
+  const { data: recentData, isLoading } = useQuery({
+    queryKey: ['customer-shipments-recent'],
     queryFn: () => api.get('/shipments?limit=5').then((r) => r.data),
   });
 
-  const shipments = shipmentsData?.data || [];
-  const total     = shipmentsData?.total || 0;
+  const allShipments    = allData?.data    || [];
+  const recentShipments = recentData?.data || [];
+  const total           = allData?.total   || 0;
+
+  // Unpaid pending shipments — need payment
+  const unpaidShipments = allShipments.filter((s) => s.status === 'pending' && !s.isPaid);
 
   const stats = [
-    { title: 'Total Shipments',  value: total,                                                          icon: FiPackage,     color: 'primary' },
-    { title: 'In Transit',       value: shipments.filter((s) => s.status === 'in_transit').length,      icon: FiTruck,       color: 'orange'  },
-    { title: 'Delivered',        value: shipments.filter((s) => s.status === 'delivered').length,       icon: FiCheckCircle, color: 'green'   },
-    { title: 'Pending',          value: shipments.filter((s) => s.status === 'pending').length,         icon: FiClock,       color: 'blue'    },
+    { title: 'Total Shipments', value: total,                                                              icon: FiPackage,     color: 'primary' },
+    { title: 'In Transit',      value: allShipments.filter((s) => s.status === 'in_transit').length,       icon: FiTruck,       color: 'orange'  },
+    { title: 'Delivered',       value: allShipments.filter((s) => s.status === 'delivered').length,        icon: FiCheckCircle, color: 'green'   },
+    { title: 'Pending Payment', value: unpaidShipments.length,                                             icon: FiClock,       color: 'blue'    },
   ];
 
   return (
@@ -42,6 +56,33 @@ const CustomerDashboard = () => {
           <FiPlus size={16} /> New Shipment
         </Link>
       </div>
+
+      {/* Unpaid alert */}
+      {unpaidShipments.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <FiAlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
+            <div>
+              <p className="font-semibold text-yellow-800 dark:text-yellow-400 text-sm">
+                {unpaidShipments.length} shipment{unpaidShipments.length > 1 ? 's' : ''} awaiting payment
+              </p>
+              <p className="text-yellow-700 dark:text-yellow-500 text-xs">
+                Complete payment to confirm your shipment{unpaidShipments.length > 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/customer/shipments"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <FiDollarSign size={13} /> Pay Now
+          </Link>
+        </motion.div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -66,7 +107,7 @@ const CustomerDashboard = () => {
               <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : shipments.length === 0 ? (
+        ) : recentShipments.length === 0 ? (
           <div className="text-center py-12">
             <FiPackage className="mx-auto text-gray-300 mb-3" size={40} />
             <p className="text-gray-500">No shipments yet</p>
@@ -79,13 +120,13 @@ const CustomerDashboard = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-dark-700">
-                  {['Tracking #', 'Route', 'Status', 'Date', 'Amount'].map((h) => (
-                    <th key={h} className="text-left py-3 text-gray-500 font-medium">{h}</th>
+                  {['Tracking #', 'Route', 'Status', 'Date', 'Amount', ''].map((h) => (
+                    <th key={h} className="text-left py-3 text-gray-500 font-medium text-xs uppercase">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {shipments.map((s) => (
+                {recentShipments.map((s) => (
                   <motion.tr
                     key={s.id}
                     initial={{ opacity: 0 }}
@@ -103,6 +144,17 @@ const CustomerDashboard = () => {
                     <td className="py-3"><StatusBadge status={s.status} /></td>
                     <td className="py-3 text-gray-500 text-xs">{formatDate(s.createdAt)}</td>
                     <td className="py-3 font-medium text-xs">{formatCurrency(s.totalPrice)}</td>
+                    <td className="py-3">
+                      {s.status === 'pending' && !s.isPaid && (
+                        <Link
+                          to="/customer/payment"
+                          state={{ shipmentId: s.id, trackingNumber: s.trackingNumber, amount: s.totalPrice }}
+                          className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg font-medium transition-colors"
+                        >
+                          Pay
+                        </Link>
+                      )}
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>

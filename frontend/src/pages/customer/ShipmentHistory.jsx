@@ -111,13 +111,24 @@ const ShipmentHistory = () => {
                       <td className="py-3 px-2 text-gray-500 text-xs">{formatDate(s.createdAt)}</td>
                       <td className="py-3 px-2 font-semibold text-xs">{formatCurrency(s.totalPrice)}</td>
                       <td className="py-3 px-2">
-                        <Link
-                          to={`/customer/track/${s.id}`}
-                          className="p-1.5 rounded-lg hover:bg-primary-50 text-primary-500 inline-flex"
-                          title="Track shipment"
-                        >
-                          <FiEye size={15} />
-                        </Link>
+                        <div className="flex items-center gap-1">
+                          <Link
+                            to={`/customer/track/${s.id}`}
+                            className="p-1.5 rounded-lg hover:bg-primary-50 text-primary-500 inline-flex"
+                            title="Track shipment"
+                          >
+                            <FiEye size={15} />
+                          </Link>
+                          {s.status === 'pending' && !s.isPaid && (
+                            <Link
+                              to="/customer/payment"
+                              state={{ shipmentId: s.id, trackingNumber: s.trackingNumber, amount: s.totalPrice }}
+                              className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg font-medium transition-colors"
+                            >
+                              Pay
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
