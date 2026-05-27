@@ -21,8 +21,8 @@ const FleetDashboard = () => {
   });
 
   const { data: pendingData } = useQuery({
-    queryKey: ['pending-shipments'],
-    queryFn: () => api.get('/shipments?status=pending&limit=5').then((r) => r.data),
+    queryKey: ['fleet-pending-shipments'],
+    queryFn: () => api.get('/shipments?status=confirmed&limit=5').then((r) => r.data),
   });
 
   const pendingShipments = pendingData?.data || [];
@@ -40,10 +40,10 @@ const FleetDashboard = () => {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <StatCard title="Total Shipments" value={stats?.shipments?.total || 0} icon={FiPackage} color="primary" change={stats?.shipments?.growth} />
-            <StatCard title="In Transit" value={stats?.shipments?.inTransit || 0} icon={FiTruck} color="orange" />
-            <StatCard title="Active Drivers" value={stats?.users?.drivers || 0} icon={FiUsers} color="blue" />
-            <StatCard title="Available Vehicles" value={stats?.vehicles?.available || 0} icon={FiTruck} color="green" />
+            <StatCard title="Total Shipments"    value={stats?.shipments?.total     || 0} icon={FiPackage} color="primary" change={stats?.shipments?.growth} />
+            <StatCard title="In Transit"         value={stats?.shipments?.inTransit || 0} icon={FiTruck}   color="orange" />
+            <StatCard title="Active Drivers"     value={stats?.users?.drivers       || 0} icon={FiUsers}   color="blue"   />
+            <StatCard title="Available Vehicles" value={stats?.vehicles?.available  || 0} icon={FiTruck}   color="green"  />
           </>
         )}
       </div>
@@ -57,19 +57,19 @@ const FleetDashboard = () => {
               <AreaChart data={trendsData}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#f97316" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="count" stroke="#f97316" fill="url(#colorCount)" strokeWidth={2} />
+                <Area type="monotone" dataKey="count" stroke="#f97316" fill="url(#colorCount)" strokeWidth={2} name="Shipments" />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-48 flex items-center justify-center text-gray-400">Loading chart...</div>
+            <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Loading chart...</div>
           )}
         </div>
 
@@ -78,7 +78,7 @@ const FleetDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <FiAlertCircle className="text-yellow-500" size={18} />
-              Pending Assignments
+              Ready to Assign
             </h3>
             <Link to="/fleet/assignments" className="text-sm text-primary-500 flex items-center gap-1">
               View all <FiArrowRight size={14} />
@@ -92,10 +92,11 @@ const FleetDashboard = () => {
           ) : (
             <div className="space-y-2">
               {pendingShipments.map((s) => (
-                <div key={s._id} className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl">
+                <div key={s.id} className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl">
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{s.trackingNumber}</p>
-                    <p className="text-xs text-gray-500">{s.pickup?.city} → {s.destination?.city}</p>
+                    <p className="text-sm font-medium font-mono text-gray-900 dark:text-white">{s.trackingNumber}</p>
+                    <p className="text-xs text-gray-500">{s.pickupCity} → {s.destCity}</p>
+                    <p className="text-xs text-gray-400">{formatDate(s.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={s.status} />

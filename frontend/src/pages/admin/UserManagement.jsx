@@ -77,7 +77,7 @@ const UserManagement = () => {
                 </thead>
                 <tbody>
                   {users.map((u) => (
-                    <tr key={u._id} className="border-b border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700">
+                    <tr key={u.id} className="border-b border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700">
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
@@ -106,7 +106,7 @@ const UserManagement = () => {
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => toggleActiveMutation.mutate({ id: u._id, isActive: !u.isActive })}
+                            onClick={() => toggleActiveMutation.mutate({ id: u.id, isActive: !u.isActive })}
                             className={`p-1.5 rounded-lg ${u.isActive ? 'hover:bg-red-50 text-red-500' : 'hover:bg-green-50 text-green-500'}`}
                             title={u.isActive ? 'Deactivate' : 'Activate'}
                           >

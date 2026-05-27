@@ -69,9 +69,9 @@ const TrackingCenter = () => {
           ) : (
             <div className="space-y-3">
               {drivers.map((driver) => {
-                const liveLocation = driverLocations[driver._id];
+                const liveLocation = driverLocations[driver.id];
                 return (
-                  <div key={driver._id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                  <div key={driver.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
                     <div className="relative">
                       <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
                         {driver.avatar ? (
