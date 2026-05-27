@@ -29,6 +29,7 @@ import ShipmentHistory from './pages/customer/ShipmentHistory';
 import TrackShipment from './pages/customer/TrackShipment';
 import CustomerProfile from './pages/customer/Profile';
 import Payment from './pages/customer/Payment';
+import Notifications from './pages/customer/Notifications';
 
 // Driver Pages
 import DriverDashboard from './pages/driver/Dashboard';
@@ -104,6 +105,8 @@ function App() {
               <Route path="/customer/create-shipment" element={<CreateShipment />} />
               <Route path="/customer/shipments" element={<ShipmentHistory />} />
               <Route path="/customer/track/:id" element={<TrackShipment />} />
+              <Route path="/customer/track" element={<TrackShipment />} />
+              <Route path="/customer/notifications" element={<Notifications />} />
               <Route path="/customer/profile" element={<CustomerProfile />} />
               <Route path="/customer/payment" element={<Payment />} />
             </Route>

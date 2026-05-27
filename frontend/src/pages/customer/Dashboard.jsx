@@ -19,13 +19,13 @@ const CustomerDashboard = () => {
   });
 
   const shipments = shipmentsData?.data || [];
-  const total = shipmentsData?.total || 0;
+  const total     = shipmentsData?.total || 0;
 
   const stats = [
-    { title: 'Total Shipments', value: total, icon: FiPackage, color: 'primary' },
-    { title: 'In Transit', value: shipments.filter((s) => s.status === 'in_transit').length, icon: FiTruck, color: 'orange' },
-    { title: 'Delivered', value: shipments.filter((s) => s.status === 'delivered').length, icon: FiCheckCircle, color: 'green' },
-    { title: 'Pending', value: shipments.filter((s) => s.status === 'pending').length, icon: FiClock, color: 'blue' },
+    { title: 'Total Shipments',  value: total,                                                          icon: FiPackage,     color: 'primary' },
+    { title: 'In Transit',       value: shipments.filter((s) => s.status === 'in_transit').length,      icon: FiTruck,       color: 'orange'  },
+    { title: 'Delivered',        value: shipments.filter((s) => s.status === 'delivered').length,       icon: FiCheckCircle, color: 'green'   },
+    { title: 'Pending',          value: shipments.filter((s) => s.status === 'pending').length,         icon: FiClock,       color: 'blue'    },
   ];
 
   return (
@@ -45,11 +45,10 @@ const CustomerDashboard = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : (
-          stats.map((stat) => <StatCard key={stat.title} {...stat} />)
-        )}
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+          : stats.map((stat) => <StatCard key={stat.title} {...stat} />)
+        }
       </div>
 
       {/* Recent Shipments */}
@@ -80,32 +79,30 @@ const CustomerDashboard = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-dark-700">
-                  <th className="text-left py-3 text-gray-500 font-medium">Tracking #</th>
-                  <th className="text-left py-3 text-gray-500 font-medium">Route</th>
-                  <th className="text-left py-3 text-gray-500 font-medium">Status</th>
-                  <th className="text-left py-3 text-gray-500 font-medium">Date</th>
-                  <th className="text-left py-3 text-gray-500 font-medium">Amount</th>
+                  {['Tracking #', 'Route', 'Status', 'Date', 'Amount'].map((h) => (
+                    <th key={h} className="text-left py-3 text-gray-500 font-medium">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {shipments.map((s) => (
                   <motion.tr
-                    key={s._id}
+                    key={s.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="border-b border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700"
                   >
                     <td className="py-3">
-                      <Link to={`/customer/track/${s._id}`} className="text-primary-500 font-medium hover:underline">
+                      <Link to={`/customer/track/${s.id}`} className="text-primary-500 font-mono text-xs font-medium hover:underline">
                         {s.trackingNumber}
                       </Link>
                     </td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">
-                      {s.pickup?.city} → {s.destination?.city}
+                    <td className="py-3 text-gray-600 dark:text-gray-400 text-xs">
+                      {s.pickupCity} → {s.destCity}
                     </td>
                     <td className="py-3"><StatusBadge status={s.status} /></td>
-                    <td className="py-3 text-gray-500">{formatDate(s.createdAt)}</td>
-                    <td className="py-3 font-medium">{formatCurrency(s.pricing?.totalPrice)}</td>
+                    <td className="py-3 text-gray-500 text-xs">{formatDate(s.createdAt)}</td>
+                    <td className="py-3 font-medium text-xs">{formatCurrency(s.totalPrice)}</td>
                   </motion.tr>
                 ))}
               </tbody>
