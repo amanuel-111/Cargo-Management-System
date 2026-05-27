@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck, FiZap } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck, FiZap, FiAlertCircle } from 'react-icons/fi';
 import { login } from '../../redux/slices/authSlice';
 
 const DEMO_USERS = [
@@ -18,7 +18,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
   const [showPass, setShowPass] = useState(false);
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, setValue, formState: { errors, dirtyFields } } = useForm({ mode: 'onChange' });
 
   const fillDemo = (user) => {
     setValue('email', user.email, { shouldValidate: true });
@@ -49,19 +49,29 @@ const LoginPage = () => {
             <p className="text-gray-500 text-sm mt-1">Sign in to your Smart Transport account</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <div className="relative">
                 <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input
-                  {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' } })}
+                  {...register('email', {
+                    required: 'Email is required',
+                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+                  })}
                   type="email"
-                  className="input-field pl-10"
+                  className={`input-field pl-10 ${errors.email ? 'border-red-400 focus:ring-red-400' : dirtyFields.email ? 'border-green-400 focus:ring-green-400' : ''}`}
                   placeholder="you@example.com"
                 />
               </div>
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              <AnimatePresence mode="wait">
+                {errors.email && (
+                  <motion.p key="err" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-1 text-red-500 text-xs mt-1">
+                    <FiAlertCircle size={11} />{errors.email.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             <div>
@@ -71,14 +81,21 @@ const LoginPage = () => {
                 <input
                   {...register('password', { required: 'Password is required' })}
                   type={showPass ? 'text' : 'password'}
-                  className="input-field pl-10 pr-10"
+                  className={`input-field pl-10 pr-10 ${errors.password ? 'border-red-400 focus:ring-red-400' : ''}`}
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPass ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+              <AnimatePresence mode="wait">
+                {errors.password && (
+                  <motion.p key="err" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-1 text-red-500 text-xs mt-1">
+                    <FiAlertCircle size={11} />{errors.password.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex items-center justify-between">
