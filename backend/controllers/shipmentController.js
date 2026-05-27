@@ -5,7 +5,11 @@ const notificationService = require('../services/notificationService');
 // ── Pricing helpers ───────────────────────────────────────────
 const PRICE_PER_KM = 25;          // ETB per km
 const MIN_PRICE    = 200;         // minimum fare in ETB
-const WEIGHT_RATE  = 35;           // ETB per kg
+
+const WEIGHT_RATES = {
+  normal: 35,   // ETB per kg
+  urgent: 40,   // ETB per kg
+};
 
 /**
  * Haversine distance between two lat/lng points — returns km.
@@ -26,7 +30,7 @@ function haversineKm(lat1, lng1, lat2, lng2) {
  * Calculate shipment price breakdown.
  * Returns { distanceKm, distancePrice, weightPrice, totalPrice }
  */
-function calculatePrice(pickupLat, pickupLng, destLat, destLng, weightKg) {
+function calculatePrice(pickupLat, pickupLng, destLat, destLng, weightKg, priority) {
   let distanceKm = 0;
   let distancePrice = 0;
 
@@ -35,7 +39,8 @@ function calculatePrice(pickupLat, pickupLng, destLat, destLng, weightKg) {
     distancePrice = parseFloat((distanceKm * PRICE_PER_KM).toFixed(2));
   }
 
-  const weightPrice = parseFloat(((Number(weightKg) || 0) * WEIGHT_RATE).toFixed(2));
+  const rate        = WEIGHT_RATES[priority] || WEIGHT_RATES.normal;
+  const weightPrice = parseFloat(((Number(weightKg) || 0) * rate).toFixed(2));
   const total       = Math.max(distancePrice + weightPrice, MIN_PRICE);
 
   return {
@@ -56,7 +61,8 @@ exports.createShipment = async (req, res, next) => {
       b.pickup?.lng,
       b.destination?.lat,
       b.destination?.lng,
-      b.cargo?.weight
+      b.cargo?.weight,
+      b.priority || 'normal'
     );
 
     const shipment = await Shipment.create({
@@ -328,18 +334,19 @@ exports.rateShipment = async (req, res, next) => {
 
 // GET /api/shipments/estimate  — price estimate before creating
 exports.estimatePrice = (req, res) => {
-  const { pickupLat, pickupLng, destLat, destLng, weight } = req.query;
-  const pricing = calculatePrice(pickupLat, pickupLng, destLat, destLng, weight);
+  const { pickupLat, pickupLng, destLat, destLng, weight, priority } = req.query;
+  const pricing = calculatePrice(pickupLat, pickupLng, destLat, destLng, weight, priority || 'normal');
   res.json({
     success: true,
     data: {
-      distanceKm: pricing.distanceKm,
-      distancePrice: pricing.distancePrice,
+      distanceKm:      pricing.distanceKm,
+      distancePrice:   pricing.distancePrice,
       weightSurcharge: pricing.weightPrice,
-      totalPrice: pricing.totalPrice,
-      currency: 'ETB',
-      ratePerKm: PRICE_PER_KM,
-      minimumFare: MIN_PRICE,
+      totalPrice:      pricing.totalPrice,
+      currency:        'ETB',
+      ratePerKm:       PRICE_PER_KM,
+      weightRates:     WEIGHT_RATES,
+      minimumFare:     MIN_PRICE,
     },
   });
 };

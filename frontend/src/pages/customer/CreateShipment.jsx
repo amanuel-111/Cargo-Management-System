@@ -12,7 +12,10 @@ import toast from 'react-hot-toast';
 const steps = ['Pickup & Delivery', 'Cargo Details', 'Review & Submit'];
 
 const cargoCategories = ['general', 'fragile', 'perishable', 'hazardous', 'electronics', 'furniture', 'livestock'];
-const priorities = ['low', 'normal', 'high', 'urgent'];
+const priorities = ['normal', 'urgent'];
+
+// Weight rate per priority
+const WEIGHT_RATES = { normal: 35, urgent: 40 };
 
 // Ethiopian cities with real coordinates
 const CITIES = [
@@ -34,7 +37,6 @@ const CITIES = [
 ];
 
 const PRICE_PER_KM = 25;
-const WEIGHT_RATE  = 35;
 const MIN_PRICE    = 200;
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -77,12 +79,14 @@ const CreateShipment = () => {
   const watchedPickupCity  = formData.pickupCity;
   const watchedDestCity    = formData.destCity;
   const watchedCargoWeight = formData.cargoWeight;
+  const watchedPriority    = formData.priority || 'normal';
 
   // Recalculate price whenever relevant fields change
   useEffect(() => {
     const pickup = CITIES.find((c) => c.name === watchedPickupCity);
     const dest   = CITIES.find((c) => c.name === watchedDestCity);
     const weight = Number(watchedCargoWeight) || 0;
+    const rate   = WEIGHT_RATES[watchedPriority] || WEIGHT_RATES.normal;
 
     let distanceKm    = 0;
     let distancePrice = 0;
@@ -92,11 +96,11 @@ const CreateShipment = () => {
       distancePrice = parseFloat((distanceKm * PRICE_PER_KM).toFixed(2));
     }
 
-    const weightPrice = parseFloat((weight * WEIGHT_RATE).toFixed(2));
+    const weightPrice = parseFloat((weight * rate).toFixed(2));
     const total       = Math.max(distancePrice + weightPrice, MIN_PRICE);
 
     setPricing({ distanceKm, distancePrice, weightPrice, total });
-  }, [watchedPickupCity, watchedDestCity, watchedCargoWeight]);
+  }, [watchedPickupCity, watchedDestCity, watchedCargoWeight, watchedPriority]);
 
   // Validate current step fields before advancing
   const handleNext = async () => {
@@ -417,7 +421,7 @@ const CreateShipment = () => {
                       <span>ETB {pricing.distancePrice.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                      <span>Weight ({formData.cargoWeight || 0} kg × ETB {WEIGHT_RATE})</span>
+                      <span>Weight ({formData.cargoWeight || 0} kg × ETB {WEIGHT_RATES[formData.priority] || WEIGHT_RATES.normal})</span>
                       <span>ETB {pricing.weightPrice.toLocaleString()}</span>
                     </div>
                     {pricing.distancePrice + pricing.weightPrice < MIN_PRICE && (
