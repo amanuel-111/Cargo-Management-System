@@ -5,7 +5,7 @@ const validate = require('../middleware/validate');
 const { protect } = require('../middleware/auth');
 const {
   register, login, logout, getMe,
-  verifyEmail, forgotPassword, resetPassword, updatePassword,
+  verifyEmail, forgotPassword, resetPassword, updatePassword, refreshToken,
 } = require('../controllers/authController');
 
 router.post('/register',
@@ -36,6 +36,12 @@ router.post('/login',
   ],
   validate,
   login
+);
+
+router.post('/refresh',
+  [body('refreshToken').notEmpty().withMessage('Refresh token is required')],
+  validate,
+  refreshToken
 );
 
 router.post('/logout', protect, logout);

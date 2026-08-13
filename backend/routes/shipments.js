@@ -7,7 +7,7 @@ const { upload } = require('../config/cloudinary');
 const {
   createShipment, getShipments, getShipment, trackShipment,
   assignShipment, updateStatus, uploadProofOfDelivery, cancelShipment, rateShipment,
-  estimatePrice,
+  estimatePrice, downloadInvoice,
 } = require('../controllers/shipmentController');
 
 // ── Public routes ─────────────────────────────────────────────
@@ -87,6 +87,13 @@ router.get('/:id',
   [param('id').isInt({ min: 1 }).withMessage('Invalid shipment ID')],
   validate,
   getShipment
+);
+
+// ── Download Invoice (PDF) ────────────────────────────────────
+router.get('/:id/invoice',
+  [param('id').isInt({ min: 1 }).withMessage('Invalid shipment ID')],
+  validate,
+  downloadInvoice
 );
 
 // ── Assign driver + vehicle ───────────────────────────────────

@@ -2,21 +2,23 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiTruck } from 'react-icons/fi';
+import { FiMenu, FiX, FiTruck, FiGlobe } from 'react-icons/fi';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAuthenticated, user, logout, getDashboardPath } = useAuth();
+  const { lang, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
   const navLinks = [
-    { label: 'Home', to: '/' },
-    { label: 'Services', to: '/services' },
-    { label: 'Pricing', to: '/pricing' },
-    { label: 'Track', to: '/track' },
-    { label: 'About', to: '/about' },
-    { label: 'Contact', to: '/contact' },
+    { label: t('home'), to: '/' },
+    { label: t('services'), to: '/services' },
+    { label: t('pricing'), to: '/pricing' },
+    { label: t('track'), to: '/track' },
+    { label: t('about'), to: '/about' },
+    { label: t('contact'), to: '/contact' },
   ];
 
   return (
@@ -46,24 +48,33 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons + Language Switcher */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              title="Change Language"
+            >
+              <FiGlobe className="text-primary-500" size={14} />
+              <span>{lang === 'en' ? '🇪🇹 አማርኛ' : '🇺🇸 EN'}</span>
+            </button>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigate(getDashboardPath())}
                   className="btn-primary text-sm py-2"
                 >
-                  Dashboard
+                  {t('dashboard')}
                 </button>
                 <button onClick={logout} className="btn-secondary text-sm py-2">
-                  Logout
+                  {t('logout')}
                 </button>
               </div>
             ) : (
               <>
-                <Link to="/login" className="btn-secondary text-sm py-2">Login</Link>
-                <Link to="/register" className="btn-primary text-sm py-2">Get Started</Link>
+                <Link to="/login" className="btn-secondary text-sm py-2">{t('login')}</Link>
+                <Link to="/register" className="btn-primary text-sm py-2">{t('register')}</Link>
               </>
             )}
           </div>

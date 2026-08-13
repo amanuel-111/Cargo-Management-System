@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { FiBell, FiSun, FiMoon, FiSearch, FiMenu } from 'react-icons/fi';
+import { FiBell, FiSun, FiMoon, FiSearch, FiMenu, FiGlobe } from 'react-icons/fi';
 import { toggleDarkMode, toggleSidebar } from '../../redux/slices/uiSlice';
 import { fetchNotifications, markAllAsRead } from '../../redux/slices/notificationSlice';
+import { useLanguage } from '../../context/LanguageContext';
 import { timeAgo } from '../../utils/helpers';
 
 const DashboardHeader = () => {
@@ -11,6 +12,7 @@ const DashboardHeader = () => {
   const { darkMode } = useSelector((state) => state.ui);
   const { unreadCount, items } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
+  const { lang, toggleLanguage } = useLanguage();
   const [notifOpen, setNotifOpen] = useState(false);
 
   const handleNotifOpen = () => {
@@ -38,6 +40,16 @@ const DashboardHeader = () => {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Language Switcher */}
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-dark-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+          title="Change Language"
+        >
+          <FiGlobe className="text-primary-500" size={14} />
+          <span>{lang === 'en' ? '🇪🇹 አማርኛ' : '🇺🇸 EN'}</span>
+        </button>
+
         {/* Dark mode toggle */}
         <button
           onClick={() => dispatch(toggleDarkMode())}

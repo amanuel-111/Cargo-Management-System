@@ -31,13 +31,13 @@ exports.getDashboardStats = async (req, res, next) => {
       where: { isPaid: true },
       attributes: [
         [fn('SUM', col('totalPrice')), 'total'],
-        [fn('SUM', literal(`CASE WHEN createdAt >= '${startOfMonth.toISOString().slice(0, 10)}' THEN totalPrice ELSE 0 END`)), 'monthly'],
+        [fn('SUM', literal(`CASE WHEN createdAt >= ${sequelize.escape(startOfMonth)} THEN totalPrice ELSE 0 END`)), 'monthly'],
       ],
       raw: true,
     });
 
     const growth = lastMonthShipments > 0
-      ? (((monthlyShipments - lastMonthShipments) / lastMonthShipments) * 100).toFixed(1)
+      ? Number((((monthlyShipments - lastMonthShipments) / lastMonthShipments) * 100).toFixed(1))
       : 0;
 
     res.status(200).json({
@@ -74,7 +74,14 @@ exports.getShipmentTrends = async (req, res, next) => {
       raw: true,
     });
 
-    res.status(200).json({ success: true, data: trends });
+    const formatted = trends.map((t) => ({
+      _id: t._id,
+      count: Number(t.count || 0),
+      delivered: Number(t.delivered || 0),
+      revenue: Number(t.revenue || 0),
+    }));
+
+    res.status(200).json({ success: true, data: formatted });
   } catch (error) {
     next(error);
   }
@@ -89,7 +96,7 @@ exports.getStatusDistribution = async (req, res, next) => {
       order: [[literal('count'), 'DESC']],
       raw: true,
     });
-    const formatted = distribution.map((d) => ({ _id: d.status, count: Number(d.count) }));
+    const formatted = distribution.map((d) => ({ _id: d.status, count: Number(d.count || 0) }));
     res.status(200).json({ success: true, data: formatted });
   } catch (error) {
     next(error);
@@ -111,7 +118,11 @@ exports.getTopRoutes = async (req, res, next) => {
       limit: 10,
       raw: true,
     });
-    const formatted = routes.map((r) => ({ _id: { from: r.pickupCity, to: r.destCity }, count: Number(r.count), revenue: Number(r.revenue) }));
+    const formatted = routes.map((r) => ({
+      _id: { from: r.pickupCity, to: r.destCity },
+      count: Number(r.count || 0),
+      revenue: Number(r.revenue || 0),
+    }));
     res.status(200).json({ success: true, data: formatted });
   } catch (error) {
     next(error);
@@ -137,7 +148,52 @@ exports.getRevenueAnalytics = async (req, res, next) => {
       raw: true,
     });
 
-    res.status(200).json({ success: true, data: revenue });
+    const formatted = revenue.map((r) => ({
+      _id: r._id,
+      total: Number(r.total || 0),
+      count: Number(r.count || 0),
+    }));
+
+    res.status(200).json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/analytics/public-stats  — Public stats dynamically queried from DB
+exports.getPublicStats = async (req, res, next) => {
+  try {
+    const [
+      deliveredCount,
+      activeDriversCount,
+      activeVehiclesCount,
+      activeShipmentsCount,
+      totalShipmentsCount,
+      onlineDriversCount,
+    ] = await Promise.all([
+      Shipment.count({ where: { status: 'delivered' } }),
+      User.count({ where: { role: 'driver', isActive: true } }),
+      Vehicle.count({ where: { isActive: true } }),
+      Shipment.count({ where: { status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] } } }),
+      Shipment.count(),
+      User.count({ where: { role: 'driver', isActive: true, isOnline: true } }),
+    ]);
+
+    const onTimeRate = totalShipmentsCount > 0
+      ? ((deliveredCount / totalShipmentsCount) * 100).toFixed(1)
+      : '100.0';
+
+    res.status(200).json({
+      success: true,
+      data: {
+        deliveriesCompleted: deliveredCount,
+        activeDrivers: activeDriversCount,
+        fleetVehicles: activeVehiclesCount,
+        activeShipments: activeShipmentsCount,
+        onlineDrivers: onlineDriversCount,
+        onTimeRate: `${onTimeRate}%`,
+      },
+    });
   } catch (error) {
     next(error);
   }

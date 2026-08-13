@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar, FiDollarSign } from 'react-icons/fi';
+import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar, FiDollarSign, FiDownload } from 'react-icons/fi';
 import api from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import Modal from '../../components/common/Modal';
@@ -61,6 +61,23 @@ const TrackShipment = () => {
 
   const currentStep = STATUS_STEPS.indexOf(shipment.status);
 
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await api.get(`/shipments/${shipment.id}/invoice`, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Invoice-${shipment.trackingNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Invoice downloaded!');
+    } catch (err) {
+      toast.error('Failed to download invoice');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       {/* Header */}
@@ -71,7 +88,15 @@ const TrackShipment = () => {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Track Shipment</h1>
         </div>
-        <StatusBadge status={shipment.status} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadInvoice}
+            className="flex items-center gap-1.5 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 text-primary-600 dark:text-primary-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-primary-200 dark:border-primary-800 transition-colors"
+          >
+            <FiDownload size={14} /> Download Invoice
+          </button>
+          <StatusBadge status={shipment.status} />
+        </div>
       </div>
 
       {/* Tracking number */}

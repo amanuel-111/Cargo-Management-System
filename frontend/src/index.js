@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
 import { store } from './redux/store';
+import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -18,7 +19,9 @@ root.render(
   <React.StrictMode>
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
         <Toaster
           position="top-right"
           toastOptions={{

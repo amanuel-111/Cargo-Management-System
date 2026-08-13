@@ -170,3 +170,37 @@ exports.updatePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// POST /api/auth/refresh
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token is required' });
+    }
+
+    const jwt = require('jsonwebtoken');
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (err) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
+    }
+
+    const user = await User.findByPk(decoded.id);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+    }
+
+    const token = user.getSignedJwtToken();
+    const newRefreshToken = user.getRefreshToken();
+    res.status(200).json({
+      success: true,
+      token,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   FiTruck, FiMapPin, FiShield, FiClock, FiStar, FiArrowRight,
   FiPackage, FiBarChart2, FiSmartphone, FiCheckCircle,
 } from 'react-icons/fi';
+import api from '../../services/api';
 
 const features = [
   { icon: FiMapPin, title: 'Real-Time Tracking', desc: 'Track your shipments live on the map with GPS precision.' },
   { icon: FiShield, title: 'Secure & Insured', desc: 'All cargo is handled with care and insurance options available.' },
-  { icon: FiClock, title: 'On-Time Delivery', desc: '99.2% on-time delivery rate across all Ethiopian regions.' },
+  { icon: FiClock, title: 'On-Time Delivery', desc: 'High reliability rate across all Ethiopian regions.' },
   { icon: FiBarChart2, title: 'Smart Analytics', desc: 'Detailed reports and insights for your logistics operations.' },
   { icon: FiSmartphone, title: 'Mobile Ready', desc: 'Manage everything from your phone, anywhere, anytime.' },
   { icon: FiPackage, title: 'All Cargo Types', desc: 'From fragile goods to heavy machinery, we handle it all.' },
-];
-
-const stats = [
-  { value: '50,000+', label: 'Deliveries Completed' },
-  { value: '1,200+', label: 'Active Drivers' },
-  { value: '500+', label: 'Fleet Vehicles' },
-  { value: '99.2%', label: 'On-Time Rate' },
 ];
 
 const testimonials = [
@@ -31,6 +26,18 @@ const testimonials = [
 const HomePage = () => {
   const [trackingNum, setTrackingNum] = useState('');
   const navigate = useNavigate();
+
+  const { data: publicStats } = useQuery({
+    queryKey: ['public-stats'],
+    queryFn: () => api.get('/analytics/public-stats').then((res) => res.data.data),
+  });
+
+  const stats = [
+    { value: (publicStats?.deliveriesCompleted ?? 0).toLocaleString(), label: 'Deliveries Completed' },
+    { value: (publicStats?.activeDrivers ?? 0).toLocaleString(), label: 'Active Drivers' },
+    { value: (publicStats?.fleetVehicles ?? 0).toLocaleString(), label: 'Fleet Vehicles' },
+    { value: publicStats?.onTimeRate || '100%', label: 'On-Time Rate' },
+  ];
 
   const handleTrack = (e) => {
     e.preventDefault();
@@ -87,7 +94,10 @@ const HomePage = () => {
                   </button>
                 </form>
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  {[['Active Shipments', '2,847'], ['Drivers Online', '342']].map(([label, val]) => (
+                  {[
+                    ['Active Shipments', (publicStats?.activeShipments ?? 0).toLocaleString()],
+                    ['Drivers Online', (publicStats?.onlineDrivers ?? 0).toLocaleString()],
+                  ].map(([label, val]) => (
                     <div key={label} className="bg-white/5 rounded-xl p-3 text-center">
                       <p className="text-2xl font-bold text-primary-400">{val}</p>
                       <p className="text-xs text-gray-400 mt-1">{label}</p>

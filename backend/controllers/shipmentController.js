@@ -474,6 +474,23 @@ exports.estimatePrice = (req, res) => {
   });
 };
 
+// GET /api/shipments/:id/invoice  — download PDF invoice
+exports.downloadInvoice = async (req, res, next) => {
+  try {
+    const shipment = await getShipmentWithRelations(req.params.id);
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+
+    // Authorization: customer can download own invoice, drivers/admins/managers can access
+    if (req.user.role === 'customer' && shipment.customerId !== req.user.id)
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+
+    const pdfService = require('../services/pdfService');
+    pdfService.generateShipmentInvoice(shipment, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Helper
 async function getShipmentWithRelations(id) {
   return Shipment.findByPk(id, {
