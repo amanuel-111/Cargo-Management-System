@@ -127,6 +127,18 @@ const TrackShipment = () => {
               <p className="text-xs text-gray-400 uppercase font-semibold">Pickup</p>
               <p className="font-semibold text-gray-900 dark:text-white">{shipment.pickupCity}</p>
               <p className="text-xs text-gray-500">{shipment.pickupAddress}</p>
+              {(shipment.pickupKebele || shipment.pickupHomeNumber) && (
+                <p className="text-xs text-gray-500">
+                  {shipment.pickupKebele && `Kebele: ${shipment.pickupKebele}`}
+                  {shipment.pickupKebele && shipment.pickupHomeNumber && ' · '}
+                  {shipment.pickupHomeNumber && `House #: ${shipment.pickupHomeNumber}`}
+                </p>
+              )}
+              {shipment.pickupMapLink && (
+                <a href={shipment.pickupMapLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-500 hover:underline block truncate max-w-xs">
+                  📍 Map Location Link
+                </a>
+              )}
               {shipment.pickupContactName && (
                 <p className="text-xs text-gray-400">{shipment.pickupContactName} · {shipment.pickupContactPhone}</p>
               )}
@@ -135,6 +147,18 @@ const TrackShipment = () => {
               <p className="text-xs text-gray-400 uppercase font-semibold">Delivery</p>
               <p className="font-semibold text-gray-900 dark:text-white">{shipment.destCity}</p>
               <p className="text-xs text-gray-500">{shipment.destAddress}</p>
+              {(shipment.destKebele || shipment.destHomeNumber) && (
+                <p className="text-xs text-gray-500">
+                  {shipment.destKebele && `Kebele: ${shipment.destKebele}`}
+                  {shipment.destKebele && shipment.destHomeNumber && ' · '}
+                  {shipment.destHomeNumber && `House #: ${shipment.destHomeNumber}`}
+                </p>
+              )}
+              {shipment.destMapLink && (
+                <a href={shipment.destMapLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-500 hover:underline block truncate max-w-xs">
+                  📍 Map Location Link
+                </a>
+              )}
               {shipment.destContactName && (
                 <p className="text-xs text-gray-400">{shipment.destContactName} · {shipment.destContactPhone}</p>
               )}

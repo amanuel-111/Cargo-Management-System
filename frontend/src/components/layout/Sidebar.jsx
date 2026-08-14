@@ -9,38 +9,39 @@ import {
 } from 'react-icons/fi';
 import { toggleSidebar } from '../../redux/slices/uiSlice';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
 import { getInitials } from '../../utils/helpers';
 
 const navConfig = {
   customer: [
-    { label: 'Dashboard', to: '/customer/dashboard', icon: FiHome },
-    { label: 'Create Shipment', to: '/customer/create-shipment', icon: FiPackage },
-    { label: 'My Shipments', to: '/customer/shipments', icon: FiClipboard },
-    { label: 'Track Shipment', to: '/customer/track', icon: FiMap },
-    { label: 'Notifications', to: '/customer/notifications', icon: FiBell },
-    { label: 'Profile', to: '/customer/profile', icon: FiSettings },
+    { key: 'dashboard', label: 'Dashboard', to: '/customer/dashboard', icon: FiHome },
+    { key: 'createShipment', label: 'Create Shipment', to: '/customer/create-shipment', icon: FiPackage },
+    { key: 'myShipments', label: 'My Shipments', to: '/customer/shipments', icon: FiClipboard },
+    { key: 'trackShipment', label: 'Track Shipment', to: '/customer/track', icon: FiMap },
+    { key: 'notifications', label: 'Notifications', to: '/customer/notifications', icon: FiBell },
+    { key: 'profile', label: 'Profile', to: '/customer/profile', icon: FiSettings },
   ],
   driver: [
-    { label: 'Dashboard', to: '/driver/dashboard', icon: FiHome },
-    { label: 'My Deliveries', to: '/driver/deliveries', icon: FiPackage },
-    { label: 'Navigation', to: '/driver/navigation', icon: FiNavigation },
-    { label: 'Profile', to: '/driver/profile', icon: FiSettings },
+    { key: 'dashboard', label: 'Dashboard', to: '/driver/dashboard', icon: FiHome },
+    { key: 'myDeliveries', label: 'My Deliveries', to: '/driver/deliveries', icon: FiPackage },
+    { key: 'navigation', label: 'Navigation', to: '/driver/navigation', icon: FiNavigation },
+    { key: 'profile', label: 'Profile', to: '/driver/profile', icon: FiSettings },
   ],
   fleet_manager: [
-    { label: 'Dashboard',        to: '/fleet/dashboard',   icon: FiHome      },
-    { label: 'Manage Drivers',   to: '/fleet/drivers',     icon: FiUsers     },
-    { label: 'Manage Vehicles',  to: '/fleet/vehicles',    icon: FiTruck     },
-    { label: 'Assignments',      to: '/fleet/assignments', icon: FiClipboard },
-    { label: 'Payment Approval', to: '/fleet/payments',    icon: FiDollarSign },
-    { label: 'Tracking Center',  to: '/fleet/tracking',    icon: FiMap       },
-    { label: 'Reports',          to: '/fleet/reports',     icon: FiBarChart2 },
+    { key: 'dashboard',        label: 'Dashboard',        to: '/fleet/dashboard',   icon: FiHome      },
+    { key: 'manageDrivers',   label: 'Manage Drivers',   to: '/fleet/drivers',     icon: FiUsers     },
+    { key: 'manageVehicles',  label: 'Manage Vehicles',  to: '/fleet/vehicles',    icon: FiTruck     },
+    { key: 'assignments',      label: 'Assignments',      to: '/fleet/assignments', icon: FiClipboard },
+    { key: 'paymentApproval', label: 'Payment Approval', to: '/fleet/payments',    icon: FiDollarSign },
+    { key: 'trackingCenter',  label: 'Tracking Center',  to: '/fleet/tracking',    icon: FiMap       },
+    { key: 'reports',          label: 'Reports',          to: '/fleet/reports',     icon: FiBarChart2 },
   ],
   admin: [
-    { label: 'Dashboard',        to: '/admin/dashboard', icon: FiHome      },
-    { label: 'User Management',  to: '/admin/users',     icon: FiUsers     },
-    { label: 'Payment Approval', to: '/fleet/payments',  icon: FiDollarSign },
-    { label: 'Analytics',        to: '/admin/analytics', icon: FiActivity  },
-    { label: 'Settings',         to: '/admin/settings',  icon: FiTool      },
+    { key: 'dashboard',        label: 'Dashboard',        to: '/admin/dashboard', icon: FiHome      },
+    { key: 'userManagement',  label: 'User Management',  to: '/admin/users',     icon: FiUsers     },
+    { key: 'paymentApproval', label: 'Payment Approval', to: '/fleet/payments',  icon: FiDollarSign },
+    { key: 'analytics',        label: 'Analytics',        to: '/admin/analytics', icon: FiActivity  },
+    { key: 'settings',         label: 'Settings',         to: '/admin/settings',  icon: FiTool      },
   ],
 };
 
@@ -48,6 +49,7 @@ const Sidebar = () => {
   const dispatch = useDispatch();
   const { sidebarOpen } = useSelector((state) => state.ui);
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   const links = navConfig[user?.role] || [];
 
@@ -118,7 +120,7 @@ const Sidebar = () => {
               <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-xs text-gray-500 capitalize">{user.role?.replace('_', ' ')}</p>
+              <p className="text-xs text-gray-500 capitalize">{t(user.role, user.role?.replace('_', ' '))}</p>
             </div>
           </div>
         </div>
@@ -126,19 +128,22 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {links.map(({ label, to, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? 'active' : ''} ${!sidebarOpen ? 'justify-center px-2' : ''}`
-            }
-            title={!sidebarOpen ? label : undefined}
-          >
-            <Icon size={18} className="flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">{label}</span>}
-          </NavLink>
-        ))}
+        {links.map(({ key, label, to, icon: Icon }) => {
+          const translatedLabel = t(key, label);
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? 'active' : ''} ${!sidebarOpen ? 'justify-center px-2' : ''}`
+              }
+              title={!sidebarOpen ? translatedLabel : undefined}
+            >
+              <Icon size={18} className="flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm">{translatedLabel}</span>}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Logout */}
@@ -146,10 +151,10 @@ const Sidebar = () => {
         <button
           onClick={logout}
           className={`sidebar-link w-full text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 ${!sidebarOpen ? 'justify-center px-2' : ''}`}
-          title={!sidebarOpen ? 'Logout' : undefined}
+          title={!sidebarOpen ? t('logout', 'Logout') : undefined}
         >
           <FiLogOut size={18} className="flex-shrink-0" />
-          {sidebarOpen && <span className="text-sm">Logout</span>}
+          {sidebarOpen && <span className="text-sm">{t('logout', 'Logout')}</span>}
         </button>
       </div>
     </motion.aside>

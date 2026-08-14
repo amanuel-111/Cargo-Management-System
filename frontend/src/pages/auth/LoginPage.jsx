@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck, FiZap, FiAlertCircle } from 'react-icons/fi';
 import { login } from '../../redux/slices/authSlice';
+import { useLanguage } from '../../context/LanguageContext';
 
 const DEMO_USERS = [
   { label: 'Admin',        email: 'admin@smarttransport.et', password: 'admin123', color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
@@ -16,6 +17,7 @@ const DEMO_USERS = [
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { loading } = useSelector((state) => state.auth);
   const [showPass, setShowPass] = useState(false);
   const { register, handleSubmit, setValue, formState: { errors, dirtyFields } } = useForm({ mode: 'onChange' });
@@ -45,13 +47,13 @@ const LoginPage = () => {
             <div className="w-14 h-14 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <FiTruck className="text-white text-2xl" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('welcomeBack', 'Welcome Back')}</h1>
             <p className="text-gray-500 text-sm mt-1">Sign in to your Smart Transport account</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('email', 'Email Address')}</label>
               <div className="relative">
                 <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input
@@ -75,7 +77,7 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('password', 'Password')}</label>
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input
@@ -112,16 +114,16 @@ const LoginPage = () => {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
+                  {t('submitting', 'Signing in...')}
                 </span>
-              ) : 'Sign In'}
+              ) : t('signIn', 'Sign In')}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account?{' '}
+            {t('dontHaveAccount', "Don't have an account?")}{' '}
             <Link to="/register" className="text-primary-500 font-medium hover:text-primary-600">
-              Create one
+              {t('signUp', 'Create one')}
             </Link>
           </p>
         </motion.div>

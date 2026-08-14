@@ -8,6 +8,7 @@ import {
   FiTruck, FiCheckCircle, FiAlertCircle,
 } from 'react-icons/fi';
 import { register as registerUser } from '../../redux/slices/authSlice';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ── Reusable field wrapper ────────────────────────────────────
 const Field = ({ label, error, success, children }) => (
@@ -48,7 +49,7 @@ const Field = ({ label, error, success, children }) => (
 // Border class based on touched/error state
 const inputClass = (error, isDirty) => {
   const base = 'input-field';
-  if (error)            return `${base} border-red-400 focus:ring-red-400`;
+  if (error) return `${base} border-red-400 focus:ring-red-400`;
   if (isDirty && !error) return `${base} border-green-400 focus:ring-green-400`;
   return base;
 };
@@ -95,6 +96,7 @@ const PasswordStrength = ({ password }) => {
 const RegisterPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { loading } = useSelector((state) => state.auth);
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -125,7 +127,7 @@ const RegisterPage = () => {
             <div className="w-14 h-14 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <FiTruck className="text-white text-2xl" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('createAccount', 'Create Account')}</h1>
             <p className="text-gray-500 text-sm mt-1">Join Smart Transport today</p>
           </div>
 
@@ -133,7 +135,7 @@ const RegisterPage = () => {
 
             {/* First + Last name */}
             <div className="grid grid-cols-2 gap-3">
-              <Field label="First Name" error={errors.firstName?.message} success={dirtyFields.firstName && !errors.firstName ? '✓' : ''}>
+              <Field label={t('firstName', 'First Name')} error={errors.firstName?.message} success={dirtyFields.firstName && !errors.firstName ? '✓' : ''}>
                 <div className="relative">
                   <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                   <input
@@ -149,7 +151,7 @@ const RegisterPage = () => {
                 </div>
               </Field>
 
-              <Field label="Last Name" error={errors.lastName?.message} success={dirtyFields.lastName && !errors.lastName ? '✓' : ''}>
+              <Field label={t('lastName', 'Last Name')} error={errors.lastName?.message} success={dirtyFields.lastName && !errors.lastName ? '✓' : ''}>
                 <input
                   {...register('lastName', {
                     required: 'Last name is required',
@@ -164,7 +166,7 @@ const RegisterPage = () => {
             </div>
 
             {/* Email */}
-            <Field label="Email Address" error={errors.email?.message} success={dirtyFields.email && !errors.email ? 'Valid email' : ''}>
+            <Field label={t('email', 'Email Address')} error={errors.email?.message} success={dirtyFields.email && !errors.email ? 'Valid email' : ''}>
               <div className="relative">
                 <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input
@@ -180,7 +182,7 @@ const RegisterPage = () => {
             </Field>
 
             {/* Phone */}
-            <Field label="Phone Number" error={errors.phone?.message} success={dirtyFields.phone && !errors.phone ? 'Valid phone number' : ''}>
+            <Field label={t('phone', 'Phone Number')} error={errors.phone?.message} success={dirtyFields.phone && !errors.phone ? 'Valid phone number' : ''}>
               <div className="relative">
                 <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input
@@ -195,15 +197,15 @@ const RegisterPage = () => {
             </Field>
 
             {/* Account type */}
-            <Field label="Account Type">
+            <Field label={t('role', 'Account Type')}>
               <select {...register('role')} className="input-field text-sm">
-                <option value="customer">Customer — Ship cargo</option>
-                <option value="driver">Driver — Deliver cargo</option>
+                <option value="customer">{t('customer', 'Customer')}</option>
+                <option value="driver">{t('driver', 'Driver')}</option>
               </select>
             </Field>
 
             {/* Password */}
-            <Field label="Password" error={errors.password?.message}>
+            <Field label={t('password', 'Password')} error={errors.password?.message}>
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input
@@ -211,7 +213,7 @@ const RegisterPage = () => {
                     required: 'Password is required',
                     minLength: { value: 8, message: 'At least 8 characters required' },
                     validate: {
-                      hasUpper:  (v) => /[A-Z]/.test(v) || 'Must include an uppercase letter',
+                      hasUpper: (v) => /[A-Z]/.test(v) || 'Must include an uppercase letter',
                       hasNumber: (v) => /[0-9]/.test(v) || 'Must include a number',
                     },
                   })}
@@ -228,7 +230,7 @@ const RegisterPage = () => {
             </Field>
 
             {/* Confirm password */}
-            <Field label="Confirm Password" error={errors.confirmPassword?.message} success={dirtyFields.confirmPassword && !errors.confirmPassword ? 'Passwords match' : ''}>
+            <Field label={t('confirmPassword', 'Confirm Password')} error={errors.confirmPassword?.message} success={dirtyFields.confirmPassword && !errors.confirmPassword ? 'Passwords match' : ''}>
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input
@@ -250,15 +252,15 @@ const RegisterPage = () => {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating account...
+                  {t('submitting', 'Creating account...')}
                 </span>
-              ) : 'Create Account'}
+              ) : t('signUp', 'Create Account')}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary-500 font-medium hover:text-primary-600">Sign in</Link>
+            {t('alreadyHaveAccount', 'Already have an account?')}{' '}
+            <Link to="/login" className="text-primary-500 font-medium hover:text-primary-600">{t('signIn', 'Sign in')}</Link>
           </p>
         </motion.div>
 

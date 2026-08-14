@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const steps = ['Pickup & Delivery', 'Cargo Details', 'Review & Submit'];
 const cargoCategories = ['general', 'fragile', 'perishable', 'hazardous', 'electronics', 'furniture', 'livestock'];
@@ -48,7 +49,7 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 const STEP_FIELDS = [
-  ['pickupCity', 'pickupAddress', 'destCity', 'destAddress'],
+  ['pickupCity', 'pickupAddress', 'pickupMapLink', 'destCity', 'destAddress', 'destKebele', 'destHomeNumber', 'destMapLink'],
   ['cargoDescription', 'cargoWeight'],
 ];
 
@@ -80,6 +81,7 @@ const fc = (err, dirty) => {
 
 const CreateShipment = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [step, setStep]       = useState(0);
   const [loading, setLoading] = useState(false);
   const [shakeNext, setShakeNext] = useState(false);
@@ -131,6 +133,12 @@ const CreateShipment = () => {
     }
   };
 
+  const formatUrl = (url) => {
+    if (!url || !url.trim()) return null;
+    const trimmed = url.trim();
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
+
   const onSubmit = async (data) => {
     setLoading(true);
     try {
@@ -139,11 +147,15 @@ const CreateShipment = () => {
       const payload = {
         pickup: {
           address: data.pickupAddress, city: data.pickupCity,
+          kebele: data.pickupKebele, homeNumber: data.pickupHomeNumber,
+          mapLink: formatUrl(data.pickupMapLink),
           lat: pickup?.lat, lng: pickup?.lng,
           contactName: data.pickupContactName, contactPhone: data.pickupContactPhone,
         },
         destination: {
           address: data.destAddress, city: data.destCity,
+          kebele: data.destKebele, homeNumber: data.destHomeNumber,
+          mapLink: formatUrl(data.destMapLink),
           lat: dest?.lat, lng: dest?.lng,
           contactName: data.destContactName, contactPhone: data.destContactPhone,
         },
@@ -169,14 +181,14 @@ const CreateShipment = () => {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Shipment</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('createNewShipment', 'Create New Shipment')}</h1>
         <p className="text-gray-500 text-sm mt-1">Fill in the details to create your transport request</p>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center mb-8">
-        {steps.map((s, i) => (
-          <React.Fragment key={s}>
+        {[t('pickupLocation', 'Pickup & Delivery'), t('cargoInfo', 'Cargo Details'), t('reviewSubmit', 'Review & Submit')].map((s, i) => (
+          <React.Fragment key={i}>
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                 i < step ? 'bg-green-500 text-white' : i === step ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
@@ -185,7 +197,7 @@ const CreateShipment = () => {
               </div>
               <span className={`text-sm font-medium hidden sm:block ${i === step ? 'text-primary-500' : 'text-gray-500'}`}>{s}</span>
             </div>
-            {i < steps.length - 1 && (
+            {i < 2 && (
               <div className={`flex-1 h-0.5 mx-3 transition-colors ${i < step ? 'bg-green-500' : 'bg-gray-200'}`} />
             )}
           </React.Fragment>
@@ -200,23 +212,23 @@ const CreateShipment = () => {
             <>
               <div className="flex items-center gap-2 mb-2">
                 <FiMapPin className="text-green-500" size={18} />
-                <h3 className="font-semibold text-gray-900 dark:text-white">Pickup Location</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('pickupLocation', 'Pickup Location')}</h3>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('city', 'City')} *</label>
                   <select
                     {...register('pickupCity', { required: 'Pickup city is required' })}
                     className={fc(errors.pickupCity, dirtyFields.pickupCity)}
                   >
-                    <option value="">Select city</option>
+                    <option value="">{t('selectCity', 'Select city')}</option>
                     {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
                   <FieldError message={errors.pickupCity?.message} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('address', 'Address')} *</label>
                   <input
                     {...register('pickupAddress', {
                       required: 'Pickup address is required',
@@ -231,11 +243,11 @@ const CreateShipment = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('contactName', 'Contact Name')}</label>
                   <input {...register('pickupContactName')} className="input-field" placeholder="Sender name" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('contactPhone', 'Contact Phone')}</label>
                   <input
                     {...register('pickupContactPhone', {
                       pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Invalid phone number' },
@@ -247,34 +259,101 @@ const CreateShipment = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('kebele', 'Kebele')}</label>
+                  <input {...register('pickupKebele')} className="input-field" placeholder="e.g. Kebele 04" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('homeNumber', 'Home Number')}</label>
+                  <input {...register('pickupHomeNumber')} className="input-field" placeholder="e.g. House #123" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('mapLocationLink', 'Map Location Link')}</label>
+                  {formData.pickupMapLink && !errors.pickupMapLink && (
+                    <a
+                      href={formData.pickupMapLink.startsWith('http') ? formData.pickupMapLink : `https://${formData.pickupMapLink}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary-500 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      Test Link ↗
+                    </a>
+                  )}
+                </div>
+                <input
+                  {...register('pickupMapLink', {
+                    validate: {
+                      validUrl: (v) => {
+                        if (!v || v.trim() === '') return true;
+                        const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=#@]*)?$/i;
+                        return urlPattern.test(v.trim()) || 'Please enter a valid URL (e.g. https://maps.google.com/...)';
+                      },
+                    },
+                  })}
+                  type="url"
+                  className={fc(errors.pickupMapLink, dirtyFields.pickupMapLink)}
+                  placeholder="Google Maps or GPS link (https://...)"
+                />
+                <FieldError message={errors.pickupMapLink?.message} />
+              </div>
+
               <div className="border-t border-gray-100 dark:border-dark-700 pt-4 mt-2">
                 <div className="flex items-center gap-2 mb-3">
                   <FiMapPin className="text-red-500" size={18} />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Delivery Location</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{t('deliveryLocation', 'Delivery Location')}</h3>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('city', 'City')} *</label>
                   <select
                     {...register('destCity', {
                       required: 'Destination city is required',
-                      validate: (v) => v !== formData.pickupCity || 'Destination must differ from pickup',
+                      validate: {
+                        differentLocation: (v) => {
+                          if (!v || !formData.pickupCity) return true;
+                          const sameCity = v.trim().toLowerCase() === (formData.pickupCity || '').trim().toLowerCase();
+                          const sameAddress = (formData.destAddress || '').trim().toLowerCase() === (formData.pickupAddress || '').trim().toLowerCase();
+                          const sameKebele = (formData.destKebele || '').trim().toLowerCase() === (formData.pickupKebele || '').trim().toLowerCase();
+                          const sameHome = (formData.destHomeNumber || '').trim().toLowerCase() === (formData.pickupHomeNumber || '').trim().toLowerCase();
+                          if (sameCity && sameAddress && sameKebele && sameHome) {
+                            return 'Delivery location cannot be identical to pickup location';
+                          }
+                          return true;
+                        },
+                      },
                     })}
                     className={fc(errors.destCity, dirtyFields.destCity)}
                   >
-                    <option value="">Select city</option>
+                    <option value="">{t('selectCity', 'Select city')}</option>
                     {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                   </select>
                   <FieldError message={errors.destCity?.message} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('address', 'Address')} *</label>
                   <input
                     {...register('destAddress', {
                       required: 'Destination address is required',
                       minLength: { value: 5, message: 'Address too short' },
+                      validate: {
+                        differentLocation: (v) => {
+                          if (!v || !formData.pickupAddress) return true;
+                          const sameCity = (formData.destCity || '').trim().toLowerCase() === (formData.pickupCity || '').trim().toLowerCase();
+                          const sameAddress = v.trim().toLowerCase() === (formData.pickupAddress || '').trim().toLowerCase();
+                          const sameKebele = (formData.destKebele || '').trim().toLowerCase() === (formData.pickupKebele || '').trim().toLowerCase();
+                          const sameHome = (formData.destHomeNumber || '').trim().toLowerCase() === (formData.pickupHomeNumber || '').trim().toLowerCase();
+                          if (sameCity && sameAddress && sameKebele && sameHome) {
+                            return 'Delivery address cannot be identical to pickup address';
+                          }
+                          return true;
+                        },
+                      },
                     })}
                     className={fc(errors.destAddress, dirtyFields.destAddress)}
                     placeholder="Street address, landmark"
@@ -285,11 +364,11 @@ const CreateShipment = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('contactName', 'Contact Name')}</label>
                   <input {...register('destContactName')} className="input-field" placeholder="Receiver name" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('contactPhone', 'Contact Phone')}</label>
                   <input
                     {...register('destContactPhone', {
                       pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Invalid phone number' },
@@ -301,16 +380,103 @@ const CreateShipment = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('kebele', 'Kebele')}</label>
+                  <input
+                    {...register('destKebele', {
+                      validate: {
+                        differentFromPickup: (v) => {
+                          if (!v || !formData.pickupKebele) return true;
+                          const sameCity = (formData.destCity || '').trim().toLowerCase() === (formData.pickupCity || '').trim().toLowerCase();
+                          const sameAddress = (formData.destAddress || '').trim().toLowerCase() === (formData.pickupAddress || '').trim().toLowerCase();
+                          const sameKebele = v.trim().toLowerCase() === (formData.pickupKebele || '').trim().toLowerCase();
+                          const sameHome = (formData.destHomeNumber || '').trim().toLowerCase() === (formData.pickupHomeNumber || '').trim().toLowerCase();
+                          if (sameCity && sameAddress && sameKebele && sameHome) {
+                            return 'Delivery Kebele cannot be identical to pickup Kebele for the same address';
+                          }
+                          return true;
+                        },
+                      },
+                    })}
+                    className={fc(errors.destKebele, dirtyFields.destKebele)}
+                    placeholder="e.g. Kebele 12"
+                  />
+                  <FieldError message={errors.destKebele?.message} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('homeNumber', 'Home Number')}</label>
+                  <input
+                    {...register('destHomeNumber', {
+                      validate: {
+                        differentFromPickup: (v) => {
+                          if (!v || !formData.pickupHomeNumber) return true;
+                          const sameCity = (formData.destCity || '').trim().toLowerCase() === (formData.pickupCity || '').trim().toLowerCase();
+                          const sameAddress = (formData.destAddress || '').trim().toLowerCase() === (formData.pickupAddress || '').trim().toLowerCase();
+                          const sameKebele = (formData.destKebele || '').trim().toLowerCase() === (formData.pickupKebele || '').trim().toLowerCase();
+                          const sameHome = v.trim().toLowerCase() === (formData.pickupHomeNumber || '').trim().toLowerCase();
+                          if (sameCity && sameAddress && sameKebele && sameHome) {
+                            return 'Delivery house number cannot be identical to pickup house number for the same address';
+                          }
+                          return true;
+                        },
+                      },
+                    })}
+                    className={fc(errors.destHomeNumber, dirtyFields.destHomeNumber)}
+                    placeholder="e.g. House #456"
+                  />
+                  <FieldError message={errors.destHomeNumber?.message} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('mapLocationLink', 'Map Location Link')}</label>
+                  {formData.destMapLink && !errors.destMapLink && (
+                    <a
+                      href={formData.destMapLink.startsWith('http') ? formData.destMapLink : `https://${formData.destMapLink}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary-500 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      Test Link ↗
+                    </a>
+                  )}
+                </div>
+                <input
+                  {...register('destMapLink', {
+                    validate: {
+                      validUrl: (v) => {
+                        if (!v || v.trim() === '') return true;
+                        const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=#@]*)?$/i;
+                        return urlPattern.test(v.trim()) || 'Please enter a valid URL (e.g. https://maps.google.com/...)';
+                      },
+                      differentFromPickup: (v) => {
+                        if (!v || !formData.pickupMapLink) return true;
+                        return (
+                          v.trim().toLowerCase() !== formData.pickupMapLink.trim().toLowerCase() ||
+                          'Delivery map link must be different from pickup map link'
+                        );
+                      },
+                    },
+                  })}
+                  type="url"
+                  className={fc(errors.destMapLink, dirtyFields.destMapLink)}
+                  placeholder="Google Maps or GPS link (https://...)"
+                />
+                <FieldError message={errors.destMapLink?.message} />
+              </div>
+
               {/* Live distance preview */}
               {watchedPickupCity && watchedDestCity && watchedPickupCity !== watchedDestCity && (
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl p-3 mt-2">
                   <FiTruck className="text-primary-500 flex-shrink-0" size={18} />
                   <div className="text-sm">
-                    <span className="text-gray-500">Estimated distance: </span>
+                    <span className="text-gray-500">{t('estimatedDistance', 'Estimated distance')}: </span>
                     <span className="font-semibold text-gray-800 dark:text-white">{pricing.distanceKm} km</span>
                     <span className="mx-2 text-gray-300">·</span>
-                    <span className="text-gray-500">Base fare: </span>
+                    <span className="text-gray-500">{t('baseFare', 'Base fare')}: </span>
                     <span className="font-semibold text-primary-600">ETB {pricing.distancePrice.toLocaleString()}</span>
                   </div>
                 </motion.div>
@@ -323,11 +489,11 @@ const CreateShipment = () => {
             <>
               <div className="flex items-center gap-2 mb-2">
                 <FiPackage className="text-primary-500" size={18} />
-                <h3 className="font-semibold text-gray-900 dark:text-white">Cargo Information</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('cargoInfo', 'Cargo Information')}</h3>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cargoDescription', 'Description')} *</label>
                 <textarea
                   {...register('cargoDescription', {
                     required: 'Cargo description is required',
@@ -343,7 +509,7 @@ const CreateShipment = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cargoCategory', 'Category')}</label>
                   <select {...register('cargoCategory')} className="input-field">
                     {cargoCategories.map((c) => (
                       <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -351,7 +517,7 @@ const CreateShipment = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (kg) *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cargoWeight', 'Weight (kg)')} *</label>
                   <input
                     {...register('cargoWeight', {
                       required: 'Weight is required',
@@ -369,7 +535,7 @@ const CreateShipment = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cargoQuantity', 'Quantity')}</label>
                   <input
                     {...register('cargoQuantity', {
                       min: { value: 1, message: 'Minimum 1' },
@@ -382,17 +548,17 @@ const CreateShipment = () => {
                   <FieldError message={errors.cargoQuantity?.message} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('priority', 'Priority')}</label>
                   <select {...register('priority')} className="input-field">
                     {priorities.map((p) => (
-                      <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                      <option key={p} value={p}>{t(p, p.charAt(0).toUpperCase() + p.slice(1))}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Special Instructions</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('specialInstructions', 'Special Instructions')}</label>
                 <textarea
                   {...register('specialInstructions', {
                     maxLength: { value: 500, message: 'Max 500 characters' },
@@ -411,12 +577,12 @@ const CreateShipment = () => {
             <>
               <div className="flex items-center gap-2 mb-4">
                 <FiInfo className="text-primary-500" size={18} />
-                <h3 className="font-semibold text-gray-900 dark:text-white">Review Your Shipment</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('reviewSubmit', 'Review Your Shipment')}</h3>
               </div>
               <div className="space-y-3">
                 {/* Route */}
                 <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Route</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('route', 'Route')}</p>
                   <div className="flex items-start gap-3">
                     <div className="flex flex-col items-center gap-1 pt-1">
                       <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -427,17 +593,41 @@ const CreateShipment = () => {
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{formData.pickupCity}</p>
                         <p className="text-xs text-gray-500">{formData.pickupAddress}</p>
+                        {(formData.pickupKebele || formData.pickupHomeNumber) && (
+                          <p className="text-xs text-gray-500">
+                            {formData.pickupKebele && `${t('kebele', 'Kebele')}: ${formData.pickupKebele}`}
+                            {formData.pickupKebele && formData.pickupHomeNumber && ' · '}
+                            {formData.pickupHomeNumber && `${t('homeNumber', 'House #')}: ${formData.pickupHomeNumber}`}
+                          </p>
+                        )}
+                        {formData.pickupMapLink && (
+                          <a href={formData.pickupMapLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-500 hover:underline block truncate max-w-xs">
+                            📍 {t('mapLocationLink', 'Map Link')}
+                          </a>
+                        )}
                         {formData.pickupContactName && <p className="text-xs text-gray-400">{formData.pickupContactName} · {formData.pickupContactPhone}</p>}
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{formData.destCity}</p>
                         <p className="text-xs text-gray-500">{formData.destAddress}</p>
+                        {(formData.destKebele || formData.destHomeNumber) && (
+                          <p className="text-xs text-gray-500">
+                            {formData.destKebele && `${t('kebele', 'Kebele')}: ${formData.destKebele}`}
+                            {formData.destKebele && formData.destHomeNumber && ' · '}
+                            {formData.destHomeNumber && `${t('homeNumber', 'House #')}: ${formData.destHomeNumber}`}
+                          </p>
+                        )}
+                        {formData.destMapLink && (
+                          <a href={formData.destMapLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-500 hover:underline block truncate max-w-xs">
+                            📍 {t('mapLocationLink', 'Map Link')}
+                          </a>
+                        )}
                         {formData.destContactName && <p className="text-xs text-gray-400">{formData.destContactName} · {formData.destContactPhone}</p>}
                       </div>
                     </div>
                     {pricing.distanceKm > 0 && (
                       <div className="text-right">
-                        <p className="text-xs text-gray-400">Distance</p>
+                        <p className="text-xs text-gray-400">{t('estimatedDistance', 'Distance')}</p>
                         <p className="font-bold text-gray-700 dark:text-white">{pricing.distanceKm} km</p>
                       </div>
                     )}
@@ -446,12 +636,12 @@ const CreateShipment = () => {
 
                 {/* Cargo */}
                 <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Cargo</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('cargoInfo', 'Cargo')}</p>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    <div><span className="text-gray-500 text-xs">Description</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoDescription}</p></div>
-                    <div><span className="text-gray-500 text-xs">Category</span><p className="font-medium capitalize text-gray-900 dark:text-white">{formData.cargoCategory}</p></div>
-                    <div><span className="text-gray-500 text-xs">Weight</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoWeight} kg</p></div>
-                    <div><span className="text-gray-500 text-xs">Priority</span><p className="font-medium capitalize text-gray-900 dark:text-white">{formData.priority}</p></div>
+                    <div><span className="text-gray-500 text-xs">{t('cargoDescription', 'Description')}</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoDescription}</p></div>
+                    <div><span className="text-gray-500 text-xs">{t('cargoCategory', 'Category')}</span><p className="font-medium capitalize text-gray-900 dark:text-white">{formData.cargoCategory}</p></div>
+                    <div><span className="text-gray-500 text-xs">{t('cargoWeight', 'Weight')}</span><p className="font-medium text-gray-900 dark:text-white">{formData.cargoWeight} kg</p></div>
+                    <div><span className="text-gray-500 text-xs">{t('priority', 'Priority')}</span><p className="font-medium capitalize text-gray-900 dark:text-white">{t(formData.priority, formData.priority)}</p></div>
                   </div>
                 </div>
 
@@ -459,7 +649,7 @@ const CreateShipment = () => {
                 <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <FiDollarSign className="text-primary-500" size={16} />
-                    <p className="text-xs font-semibold text-primary-600 uppercase">Price Breakdown</p>
+                    <p className="text-xs font-semibold text-primary-600 uppercase">{t('priceBreakdown', 'Price Breakdown')}</p>
                   </div>
                   <div className="space-y-1.5 text-sm mb-3">
                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
@@ -477,7 +667,7 @@ const CreateShipment = () => {
                     )}
                   </div>
                   <div className="border-t border-primary-200 dark:border-primary-700 pt-2 flex justify-between items-center">
-                    <span className="font-semibold text-gray-700 dark:text-white">Total</span>
+                    <span className="font-semibold text-gray-700 dark:text-white">{t('total', 'Total')}</span>
                     <span className="text-2xl font-bold text-primary-600">ETB {pricing.total.toLocaleString()}</span>
                   </div>
                 </div>
@@ -494,7 +684,7 @@ const CreateShipment = () => {
             disabled={step === 0}
             className="btn-secondary flex items-center gap-2 disabled:opacity-40"
           >
-            <FiArrowLeft size={16} /> Previous
+            <FiArrowLeft size={16} /> {t('previous', 'Previous')}
           </button>
 
           {step < steps.length - 1 ? (
@@ -505,14 +695,14 @@ const CreateShipment = () => {
               transition={{ duration: 0.4 }}
               className="btn-primary flex items-center gap-2"
             >
-              Next <FiArrowRight size={16} />
+              {t('next', 'Next')} <FiArrowRight size={16} />
             </motion.button>
           ) : (
             <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
               {loading ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</>
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('submitting', 'Submitting...')}</>
               ) : (
-                <><FiCheckCircle size={16} /> Submit & Pay</>
+                <><FiCheckCircle size={16} /> {t('submitPay', 'Submit & Pay')}</>
               )}
             </button>
           )}
