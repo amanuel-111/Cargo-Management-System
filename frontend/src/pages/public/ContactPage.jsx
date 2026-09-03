@@ -26,9 +26,9 @@ const ContactPage = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h2>
               <div className="space-y-4 mb-8">
                 {[
-                  { icon: FiMapPin, label: 'Address', value: 'Bole Road, Addis Ababa, Ethiopia' },
-                  { icon: FiPhone, label: 'Phone', value: '+251 911 123 456' },
-                  { icon: FiMail, label: 'Email', value: 'info@smarttransport.et' },
+                  { icon: FiMapPin, label: 'Address', value: 'Bahir Dar' },
+                  { icon: FiPhone, label: 'Phone', value: '0932158839' },
+                  { icon: FiMail, label: 'Email', value: 'amatila111@gmail.com' },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
