@@ -214,58 +214,101 @@ exports.trackShipment = async (req, res, next) => {
 
 // PUT /api/shipments/:id/assign
 exports.assignShipment = async (req, res, next) => {
+  const { sequelize } = require('../config/db');
+  const t = await sequelize.transaction();
+
   try {
     const { driverId, vehicleId } = req.body;
-    const shipment = await Shipment.findByPk(req.params.id);
-    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    const LogisticsService = require('../services/logisticsService');
+
+    const shipment = await Shipment.findByPk(req.params.id, { transaction: t });
+    if (!shipment) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Shipment not found' });
+    }
 
     // Must be confirmed (payment approved) before assigning
-    if (shipment.status !== 'confirmed')
+    if (shipment.status !== 'confirmed') {
+      await t.rollback();
       return res.status(400).json({
         success: false,
         message: `Cannot assign shipment with status '${shipment.status}'. Payment must be approved first.`,
       });
+    }
 
     // Validate driver
-    const driver = await User.findByPk(driverId);
-    if (!driver || driver.role !== 'driver')
+    const driver = await User.findByPk(driverId, { transaction: t });
+    if (!driver || driver.role !== 'driver') {
+      await t.rollback();
       return res.status(400).json({ success: false, message: 'Invalid driver' });
-    if (!driver.isActive)
+    }
+    if (!driver.isActive) {
+      await t.rollback();
       return res.status(400).json({ success: false, message: 'Driver is not active' });
+    }
 
-    // Check driver not already on an active delivery
+    // Validate vehicle
+    const vehicle = await Vehicle.findByPk(vehicleId, { transaction: t });
+    if (!vehicle || !vehicle.isActive) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Invalid vehicle' });
+    }
+    if (vehicle.status !== 'available' && vehicle.status !== 'in_transit') {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Vehicle is not available for assignment (current status: ${vehicle.status})`,
+      });
+    }
+
+    // Ensure driver is not assigned to a DIFFERENT active vehicle
     const { Op } = require('sequelize');
-    const activeDelivery = await Shipment.findOne({
+    const driverActiveDeliveries = await Shipment.findAll({
       where: {
         driverId,
         status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
       },
+      transaction: t,
     });
-    if (activeDelivery)
+    
+    if (driverActiveDeliveries.length > 0) {
+      // All existing active deliveries for this driver must be on the SAME vehicle
+      const currentVehicleId = driverActiveDeliveries[0].vehicleId;
+      if (currentVehicleId !== parseInt(vehicleId, 10)) {
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Driver is already assigned to a different vehicle (Vehicle ID: ${currentVehicleId}) for active deliveries.`,
+        });
+      }
+    }
+
+    // Check Capacity
+    const capacityInfo = await LogisticsService.getVehicleCapacityInfo(vehicleId, shipment.cargoWeight, t);
+    if (!capacityInfo.isCompatible) {
+      await t.rollback();
       return res.status(400).json({
         success: false,
-        message: `Driver is already on an active delivery (#${activeDelivery.trackingNumber})`,
+        message: `Vehicle capacity exceeded. Available capacity: ${capacityInfo.availableCapacity} kg, shipment weight: ${shipment.cargoWeight} kg.`,
       });
+    }
 
-    // Validate vehicle
-    const vehicle = await Vehicle.findByPk(vehicleId);
-    if (!vehicle || !vehicle.isActive)
-      return res.status(400).json({ success: false, message: 'Invalid vehicle' });
-    if (vehicle.status !== 'available')
-      return res.status(400).json({
-        success: false,
-        message: `Vehicle is not available (current status: ${vehicle.status})`,
-      });
-
-    await shipment.update({ driverId, vehicleId, assignedById: req.user.id, status: 'assigned' });
+    // Process assignment
+    await shipment.update({ driverId, vehicleId, assignedById: req.user.id, status: 'assigned' }, { transaction: t });
+    
     await ShipmentStatusHistory.create({
       shipmentId: shipment.id,
       status: 'assigned',
-      note: `Assigned to driver ${driver.firstName} ${driver.lastName}`,
+      note: `Assigned to driver ${driver.firstName} ${driver.lastName} on vehicle ${vehicle.plateNumber}`,
       updatedById: req.user.id,
-    });
-    await Vehicle.update({ status: 'in_transit', assignedDriverId: driverId }, { where: { id: vehicleId } });
+    }, { transaction: t });
 
+    // Vehicle becomes in_transit if it isn't already, and driver is attached
+    await Vehicle.update({ status: 'in_transit', assignedDriverId: driverId }, { where: { id: vehicleId }, transaction: t });
+
+    await t.commit(); // Commit transaction BEFORE creating notifications and socket events
+
+    // Side effects (Notifications and Sockets)
     await notificationService.createNotification({ recipientId: driverId, type: 'driver_assigned', title: 'New Delivery Assigned', message: `You have been assigned shipment #${shipment.trackingNumber}`, shipmentId: shipment.id });
     await notificationService.createNotification({ recipientId: shipment.customerId, type: 'shipment_assigned', title: 'Driver Assigned', message: `A driver has been assigned to your shipment #${shipment.trackingNumber}`, shipmentId: shipment.id });
 
@@ -276,6 +319,7 @@ exports.assignShipment = async (req, res, next) => {
     const result = await getShipmentWithRelations(shipment.id);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
+    await t.rollback();
     next(error);
   }
 };

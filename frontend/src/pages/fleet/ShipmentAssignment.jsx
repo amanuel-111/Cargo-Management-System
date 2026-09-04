@@ -42,6 +42,14 @@ const ShipmentAssignment = () => {
       api.get('/vehicles?status=available').then((r) => r.data),
   });
 
+  // Assignment Logistics Check
+  const { data: assignmentCheck, isLoading: isChecking } = useQuery({
+    queryKey: ['assignment-check', selectedVehicle, selectedShipment?.id],
+    queryFn: () =>
+      api.get(`/vehicles/${selectedVehicle}/assignment-check?shipmentId=${selectedShipment.id}`).then((r) => r.data),
+    enabled: !!selectedVehicle && !!selectedShipment,
+  });
+
   const assignMutation = useMutation({
     mutationFn: ({ shipmentId, driverId, vehicleId }) =>
       api.put(`/shipments/${shipmentId}/assign`, { driverId, vehicleId }),
@@ -299,6 +307,61 @@ const ShipmentAssignment = () => {
               )}
             </div>
 
+            {/* Logistics Summary */}
+            {selectedVehicle && (
+              <div className="bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Vehicle Assignment Check</h4>
+                
+                {isChecking ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : assignmentCheck?.data ? (
+                  <div className="space-y-3">
+                    {/* Capacity Check */}
+                    <div className={`p-3 rounded-lg border text-sm ${
+                      assignmentCheck.data.capacity.isCompatible 
+                        ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800' 
+                        : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800'
+                    }`}>
+                      <div className="flex items-center gap-2 font-medium mb-1">
+                        {assignmentCheck.data.capacity.isCompatible ? <FiCheckCircle /> : <FiAlertCircle />}
+                        Capacity {assignmentCheck.data.capacity.isCompatible ? 'Available' : 'Exceeded'}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs opacity-90 ml-6">
+                        <div>Max Capacity: {assignmentCheck.data.capacity.capacity} kg</div>
+                        <div>Current Load: {assignmentCheck.data.capacity.currentLoad} kg</div>
+                        <div>New Shipment: {assignmentCheck.data.capacity.newShipmentWeight} kg</div>
+                        <div>After Assignment: {assignmentCheck.data.capacity.afterAssignment} kg</div>
+                      </div>
+                    </div>
+
+                    {/* Route Check */}
+                    {assignmentCheck.data.route.warning && (
+                      <div className="p-3 rounded-lg border bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 text-sm">
+                        <div className="flex items-center gap-2 font-medium mb-1">
+                          <FiAlertCircle />
+                          Route Compatibility Advisory
+                        </div>
+                        <p className="text-xs ml-6 opacity-90">{assignmentCheck.data.route.reason}</p>
+                      </div>
+                    )}
+
+                    {/* Schedule Check */}
+                    {assignmentCheck.data.schedule.warning && (
+                      <div className="p-3 rounded-lg border bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 text-sm">
+                        <div className="flex items-center gap-2 font-medium mb-1">
+                          <FiAlertCircle />
+                          Schedule Compatibility Advisory
+                        </div>
+                        <p className="text-xs ml-6 opacity-90">{assignmentCheck.data.schedule.reason}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -310,7 +373,7 @@ const ShipmentAssignment = () => {
               <button
                 type="button"
                 onClick={handleAssign}
-                disabled={!selectedDriver || !selectedVehicle || assignMutation.isPending}
+                disabled={!selectedDriver || !selectedVehicle || assignMutation.isPending || isChecking || (assignmentCheck?.data && !assignmentCheck.data.capacity.isCompatible)}
                 className="btn-primary flex-1"
               >
                 {assignMutation.isPending ? (

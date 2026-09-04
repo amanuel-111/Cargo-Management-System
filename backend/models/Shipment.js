@@ -105,6 +105,11 @@ Shipment.init(
     sequelize,
     modelName: 'Shipment',
     tableName: 'shipments',
+    indexes: [
+      { fields: ['vehicleId'] },
+      { fields: ['driverId'] },
+      { fields: ['status'] },
+    ],
     hooks: {
       beforeCreate: (shipment) => {
         if (!shipment.trackingNumber) {

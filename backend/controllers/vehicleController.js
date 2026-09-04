@@ -36,7 +36,18 @@ exports.getVehicles = async (req, res, next) => {
       offset,
     });
 
-    res.status(200).json({ success: true, count: rows.length, total: count, pages: Math.ceil(count / limit), data: rows });
+    const LogisticsService = require('../services/logisticsService');
+    const enrichedRows = await Promise.all(rows.map(async (v) => {
+      const vJson = v.toJSON();
+      try {
+        vJson.logistics = await LogisticsService.getVehicleCapacityInfo(v.id);
+      } catch (err) {
+        vJson.logistics = null;
+      }
+      return vJson;
+    }));
+
+    res.status(200).json({ success: true, count: rows.length, total: count, pages: Math.ceil(count / limit), data: enrichedRows });
   } catch (error) {
     next(error);
   }
@@ -49,7 +60,16 @@ exports.getVehicle = async (req, res, next) => {
       include: [{ model: User, as: 'assignedDriver', attributes: ['id', 'firstName', 'lastName', 'phone'], required: false }],
     });
     if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
-    res.status(200).json({ success: true, data: vehicle });
+    
+    const LogisticsService = require('../services/logisticsService');
+    const vJson = vehicle.toJSON();
+    try {
+      vJson.logistics = await LogisticsService.getVehicleCapacityInfo(vehicle.id);
+    } catch (err) {
+      vJson.logistics = null;
+    }
+
+    res.status(200).json({ success: true, data: vJson });
   } catch (error) {
     next(error);
   }

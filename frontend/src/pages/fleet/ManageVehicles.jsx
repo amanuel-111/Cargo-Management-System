@@ -273,7 +273,17 @@ const ManageVehicles = () => {
                     </td>
                     <td className="py-3 px-3 text-gray-500">{v.year}</td>
                     <td className="py-3 px-3">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{Number(v.capacity).toLocaleString()} kg</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{Number(v.capacity).toLocaleString()} kg max</span>
+                        {v.logistics && (
+                          <div className="mt-1 flex items-center gap-2 text-xs">
+                            <span className={`${v.logistics.utilizationPercentage >= 100 ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
+                              {v.logistics.utilizationPercentage}% Used
+                            </span>
+                            <span className="text-gray-400">({v.logistics.activeShipmentCount} active)</span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3 capitalize text-gray-500">{v.fuelType}</td>
                     <td className="py-3 px-3">

@@ -22,7 +22,7 @@ const DriverDashboard = () => {
   });
 
   const shipments     = shipmentsData?.data || [];
-  const activeDelivery = shipments.find((s) =>
+  const activeDeliveries = shipments.filter((s) =>
     ['assigned', 'picked_up', 'in_transit'].includes(s.status)
   );
 
@@ -59,23 +59,35 @@ const DriverDashboard = () => {
         </button>
       </div>
 
-      {/* Active delivery alert */}
-      {activeDelivery && (
+      {/* Active deliveries alert */}
+      {activeDeliveries.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-primary-700 dark:text-primary-400">Active Delivery</p>
-              <p className="text-sm text-primary-600 dark:text-primary-500">
-                {activeDelivery.trackingNumber} · {activeDelivery.pickupCity} → {activeDelivery.destCity}
-              </p>
-            </div>
-            <Link to={`/driver/delivery/${activeDelivery.id}`} className="btn-primary text-sm py-2">
-              Continue
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-semibold text-primary-700 dark:text-primary-400">
+              {activeDeliveries.length} Active {activeDeliveries.length === 1 ? 'Delivery' : 'Deliveries'}
+            </p>
+            <Link to={`/driver/deliveries`} className="btn-primary text-sm py-1.5 px-3">
+              View All
             </Link>
+          </div>
+          <div className="space-y-2 mt-3">
+            {activeDeliveries.slice(0, 3).map((delivery) => (
+              <div key={delivery.id} className="flex items-center justify-between bg-white dark:bg-dark-800 p-2 rounded border border-primary-100 dark:border-primary-800/50">
+                <p className="text-sm text-primary-600 dark:text-primary-500">
+                  <span className="font-mono font-semibold">{delivery.trackingNumber}</span> · {delivery.pickupCity} → {delivery.destCity}
+                </p>
+                <Link to={`/driver/delivery/${delivery.id}`} className="text-xs font-medium text-primary-600 hover:underline">
+                  Update
+                </Link>
+              </div>
+            ))}
+            {activeDeliveries.length > 3 && (
+              <p className="text-xs text-primary-600 text-center mt-2">+ {activeDeliveries.length - 3} more</p>
+            )}
           </div>
         </motion.div>
       )}

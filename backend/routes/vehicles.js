@@ -4,7 +4,7 @@ const { body, param, query } = require('express-validator');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const {
-  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations, updateTrackingDevice,
+  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations, updateTrackingDevice, checkAssignment,
 } = require('../controllers/vehicleController');
 
 router.use(protect);
@@ -46,6 +46,16 @@ router.get('/:id',
   [param('id').isInt({ min: 1 }).withMessage('Invalid vehicle ID')],
   validate,
   getVehicle
+);
+
+router.get('/:id/assignment-check',
+  [
+    param('id').isInt({ min: 1 }).withMessage('Invalid vehicle ID'),
+    query('shipmentId').isInt({ min: 1 }).withMessage('Valid shipment ID required'),
+  ],
+  validate,
+  authorize('admin', 'fleet_manager'),
+  checkAssignment
 );
 
 router.put('/:id',
