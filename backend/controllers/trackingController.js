@@ -116,3 +116,162 @@ exports.getActiveDrivers = async (req, res, next) => {
     next(error);
   }
 };
+
+// POST /api/tracking/shipment/:shipmentId/start
+exports.startTracking = async (req, res, next) => {
+  try {
+    const shipment = await Shipment.findByPk(req.params.shipmentId, {
+      include: [{ model: Vehicle, as: 'vehicle' }]
+    });
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    if (!shipment.vehicle) return res.status(400).json({ success: false, message: 'Shipment has no assigned vehicle' });
+    if (!shipment.vehicle.traccarDeviceId) return res.status(400).json({ success: false, message: 'Vehicle has no Traccar device ID' });
+    
+    await Shipment.update({
+      trackingEnabled: true,
+      trackingStatus: 'active',
+      trackingStartedAt: new Date()
+    }, { where: { id: req.params.shipmentId } });
+    
+    res.status(200).json({ success: true, message: 'Tracking started' });
+  } catch (error) { next(error); }
+};
+
+// POST /api/tracking/shipment/:shipmentId/stop
+exports.stopTracking = async (req, res, next) => {
+  try {
+    await Shipment.update({
+      trackingEnabled: false,
+      trackingStatus: 'completed',
+      trackingEndedAt: new Date()
+    }, { where: { id: req.params.shipmentId } });
+    res.status(200).json({ success: true, message: 'Tracking stopped' });
+  } catch (error) { next(error); }
+};
+
+// GET /api/tracking/shipment/:shipmentId/live
+exports.getShipmentLiveLocation = async (req, res, next) => {
+  try {
+    const idOrTracking = req.params.shipmentId;
+    const isNumeric = !isNaN(idOrTracking) && !isNaN(parseFloat(idOrTracking));
+    const whereClause = isNumeric ? { id: idOrTracking } : { trackingNumber: idOrTracking };
+
+    const shipment = await Shipment.findOne({
+      where: whereClause,
+      include: [{ model: Vehicle, as: 'vehicle', attributes: ['id', 'plateNumber'] }]
+    });
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    
+    if (req.user && req.user.role === 'customer' && shipment.customerId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    const location = await LocationUpdate.findOne({
+      where: { shipmentId: shipment.id },
+      order: [['timestamp', 'DESC']]
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        shipmentId: shipment.id,
+        trackingNumber: shipment.trackingNumber,
+        status: shipment.status,
+        trackingStatus: shipment.trackingStatus,
+        vehicle: shipment.vehicle,
+        location: location ? {
+          latitude: location.lat,
+          longitude: location.lng,
+          speed: location.speed,
+          heading: location.heading,
+          recordedAt: location.timestamp
+        } : null
+      }
+    });
+  } catch (error) { next(error); }
+};
+
+// GET /api/tracking/shipment/:shipmentId/history
+exports.getShipmentLocationHistory = async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+    
+    const idOrTracking = req.params.shipmentId;
+    const isNumeric = !isNaN(idOrTracking) && !isNaN(parseFloat(idOrTracking));
+    const whereClause = isNumeric ? { id: idOrTracking } : { trackingNumber: idOrTracking };
+
+    const shipment = await Shipment.findOne({ where: whereClause });
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    
+    if (req.user && req.user.role === 'customer' && shipment.customerId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    let where = { shipmentId: shipment.id };
+    if (from || to) {
+      where.timestamp = {};
+      if (from) where.timestamp[require('sequelize').Op.gte] = new Date(from);
+      if (to) where.timestamp[require('sequelize').Op.lte] = new Date(to);
+    }
+    
+    const locations = await LocationUpdate.findAll({
+      where,
+      order: [['timestamp', 'ASC']],
+      attributes: ['lat', 'lng', 'speed', 'heading', 'timestamp'],
+      limit: 1000
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: locations.map(l => ({
+        latitude: l.lat,
+        longitude: l.lng,
+        speed: l.speed,
+        heading: l.heading,
+        recordedAt: l.timestamp
+      }))
+    });
+  } catch (error) { next(error); }
+};
+
+// GET /api/tracking/:trackingNumber
+exports.getPublicTracking = async (req, res, next) => {
+  try {
+    const shipment = await Shipment.findOne({
+      where: { trackingNumber: req.params.trackingNumber },
+      include: [{ model: Vehicle, as: 'vehicle' }]
+    });
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    
+    let currentLocation = null;
+    if (shipment.trackingEnabled && shipment.trackingStatus === 'active') {
+      const location = await LocationUpdate.findOne({
+        where: { shipmentId: shipment.id },
+        order: [['timestamp', 'DESC']]
+      });
+      if (location) {
+        currentLocation = {
+          latitude: location.lat,
+          longitude: location.lng,
+          speed: location.speed,
+          heading: location.heading,
+          updatedAt: location.timestamp
+        };
+      }
+    }
+
+    // Only return safe information
+    res.status(200).json({
+      success: true,
+      data: {
+        trackingNumber: shipment.trackingNumber,
+        shipmentStatus: shipment.status,
+        trackingStatus: shipment.trackingStatus,
+        origin: shipment.pickupCity,
+        destination: shipment.destCity,
+        currentLocation,
+        estimatedArrival: shipment.estimatedArrival
+      }
+    });
+  } catch (error) { next(error); }
+};

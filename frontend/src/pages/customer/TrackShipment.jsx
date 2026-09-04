@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar, FiDollarSign, FiDownload } from 'react-icons/fi';
+import { FiMapPin, FiTruck, FiCheckCircle, FiPackage, FiArrowLeft, FiStar, FiDollarSign, FiDownload, FiSearch } from 'react-icons/fi';
 import api from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import Modal from '../../components/common/Modal';
@@ -9,6 +9,7 @@ import { SkeletonCard } from '../../components/common/LoadingSkeleton';
 import { formatDate, formatDateTime, formatCurrency } from '../../utils/helpers';
 import { joinShipmentRoom, leaveShipmentRoom } from '../../services/socketService';
 import toast from 'react-hot-toast';
+import LiveTrackingMap from '../../components/tracking/LiveTrackingMap';
 
 const STATUS_STEPS = ['pending','confirmed','assigned','picked_up','in_transit','out_for_delivery','delivered'];
 
@@ -19,12 +20,26 @@ const TrackShipment = () => {
   const [showRateModal, setShowRateModal] = useState(false);
   const [ratingScore, setRatingScore]     = useState(0);
   const [ratingComment, setRatingComment] = useState('');
+  const [trackingInput, setTrackingInput] = useState('');
 
-  const { data: shipment, isLoading } = useQuery({
+  const { data: shipment, isLoading, isError, error } = useQuery({
     queryKey: ['shipment', id],
     queryFn: () => api.get(`/shipments/${id}`).then((r) => r.data.data),
     refetchInterval: 30000,
     enabled: !!id,
+  });
+
+  const { data: trackingData } = useQuery({
+    queryKey: ['tracking', id],
+    queryFn: () => api.get(`/tracking/shipment/${id}/live`).then((r) => r.data.data),
+    refetchInterval: 15000,
+    enabled: !!id && shipment?.trackingEnabled && shipment?.trackingStatus === 'active',
+  });
+
+  const { data: trackingHistory } = useQuery({
+    queryKey: ['trackingHistory', id],
+    queryFn: () => api.get(`/tracking/shipment/${id}/history`).then((r) => r.data.data),
+    enabled: !!id && shipment?.trackingEnabled && shipment?.trackingStatus === 'active',
   });
 
   const rateMutation = useMutation({
@@ -45,9 +60,48 @@ const TrackShipment = () => {
     }
   }, [id]);
 
+  if (!id) return (
+    <div className="max-w-xl mx-auto py-12 text-center space-y-6">
+      <FiSearch className="mx-auto text-primary-500 mb-2" size={48} />
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Track Your Shipment</h2>
+      <p className="text-gray-500">Enter your shipment tracking number to view its live status.</p>
+      <form 
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (trackingInput.trim()) {
+            navigate(`/customer/track/${trackingInput.trim()}`);
+          }
+        }}
+        className="flex gap-3 max-w-md mx-auto"
+      >
+        <div className="relative flex-1">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            className="input-field pl-11 py-3 w-full"
+            placeholder="e.g. STC-1234-ABCD"
+            value={trackingInput}
+            onChange={(e) => setTrackingInput(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="btn-primary px-6">Track</button>
+      </form>
+    </div>
+  );
+
   if (isLoading) return (
     <div className="max-w-3xl mx-auto space-y-4">
       {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+    </div>
+  );
+
+  if (isError) return (
+    <div className="text-center py-20">
+      <FiPackage className="mx-auto text-gray-300 mb-3" size={48} />
+      <p className="text-red-500 mb-2 font-semibold">Error Loading Shipment</p>
+      <p className="text-gray-500 mb-4">{error?.response?.data?.message || error.message || 'An unknown error occurred.'}</p>
+      <Link to="/customer/shipments" className="btn-secondary">← Back to Shipments</Link>
     </div>
   );
 
@@ -172,6 +226,15 @@ const TrackShipment = () => {
           )}
         </div>
       </div>
+
+      {/* Live Map */}
+      {shipment.trackingEnabled && shipment.trackingStatus === 'active' && (
+        <LiveTrackingMap 
+          shipment={shipment} 
+          trackingData={trackingData} 
+          history={trackingHistory} 
+        />
+      )}
 
       {/* Progress */}
       <div className="card">

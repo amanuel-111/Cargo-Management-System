@@ -175,14 +175,21 @@ exports.getShipments = async (req, res, next) => {
 // GET /api/shipments/:id
 exports.getShipment = async (req, res, next) => {
   try {
+    console.log('GET /api/shipments/:id called with id:', req.params.id);
     const shipment = await getShipmentWithRelations(req.params.id);
-    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    if (!shipment) {
+      console.log('Shipment not found for id:', req.params.id);
+      return res.status(404).json({ success: false, message: 'Shipment not found' });
+    }
 
-    if (req.user.role === 'customer' && shipment.customerId !== req.user.id)
+    if (req.user.role === 'customer' && shipment.customerId !== req.user.id) {
+      console.log('Authorization failed. shipment.customerId:', shipment.customerId, 'req.user.id:', req.user.id);
       return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
 
     res.status(200).json({ success: true, data: shipment });
   } catch (error) {
+    console.error('Error in getShipment:', error);
     next(error);
   }
 };
@@ -498,8 +505,12 @@ exports.downloadInvoice = async (req, res, next) => {
 };
 
 // Helper
-async function getShipmentWithRelations(id) {
-  return Shipment.findByPk(id, {
+async function getShipmentWithRelations(idOrTracking) {
+  const isNumeric = !isNaN(idOrTracking) && !isNaN(parseFloat(idOrTracking));
+  const whereClause = isNumeric ? { id: idOrTracking } : { trackingNumber: idOrTracking };
+
+  return Shipment.findOne({
+    where: whereClause,
     include: [
       { model: User, as: 'customer', attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'avatar'] },
       { model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'phone', 'avatar', 'rating', 'currentLat', 'currentLng'], required: false },

@@ -4,7 +4,7 @@ const { body, param, query } = require('express-validator');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const {
-  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations,
+  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations, updateTrackingDevice,
 } = require('../controllers/vehicleController');
 
 router.use(protect);
@@ -81,6 +81,16 @@ router.put('/:id/assign-driver',
   validate,
   authorize('admin', 'fleet_manager'),
   assignDriver
+);
+
+router.patch('/:id/tracking-device',
+  [
+    param('id').isInt({ min: 1 }).withMessage('Invalid vehicle ID'),
+    body('traccarDeviceId').notEmpty().withMessage('Traccar device ID is required'),
+  ],
+  validate,
+  authorize('admin', 'fleet_manager'),
+  updateTrackingDevice
 );
 
 module.exports = router;

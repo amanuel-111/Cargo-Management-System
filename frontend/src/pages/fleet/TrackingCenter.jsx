@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiTruck, FiMapPin, FiRefreshCw, FiNavigation,
-  FiActivity, FiUser, FiPackage, FiWifi, FiWifiOff,
+  FiActivity, FiUser, FiPackage, FiWifi, FiWifiOff, FiPlay, FiSquare
 } from 'react-icons/fi';
 import api from '../../services/api';
 import { getSocket } from '../../services/socketService';
 import { getInitials, timeAgo } from '../../utils/helpers';
+import toast from 'react-hot-toast';
 
 const TrackingCenter = () => {
   const [driverLocations, setDriverLocations] = useState({});   // live location per driverId
@@ -15,10 +16,39 @@ const TrackingCenter = () => {
   const [selectedDriver,  setSelectedDriver]  = useState(null); // driver detail panel
   const [lastUpdate,      setLastUpdate]      = useState(null);
 
+  const queryClient = useQueryClient();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['active-drivers'],
     queryFn: () => api.get('/tracking/active-drivers').then((r) => r.data.data),
     refetchInterval: 30000,
+  });
+
+  const { data: activeShipmentsData, refetch: refetchShipments } = useQuery({
+    queryKey: ['active-shipments'],
+    queryFn: () => api.get('/shipments?status=in_transit,picked_up,out_for_delivery&limit=50').then((r) => r.data.data),
+    refetchInterval: 30000,
+  });
+
+  const startTrackingMutation = useMutation({
+    mutationFn: (id) => api.post(`/tracking/shipment/${id}/start`),
+    onSuccess: () => {
+      toast.success('Tracking started successfully');
+      queryClient.invalidateQueries(['active-shipments']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to start tracking');
+    }
+  });
+
+  const stopTrackingMutation = useMutation({
+    mutationFn: (id) => api.post(`/tracking/shipment/${id}/stop`),
+    onSuccess: () => {
+      toast.success('Tracking stopped successfully');
+      queryClient.invalidateQueries(['active-shipments']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to stop tracking');
+    }
   });
 
   // Socket listeners
@@ -265,6 +295,78 @@ const TrackingCenter = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Active Shipments GPS Controls */}
+      <div className="card mt-6">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <FiMapPin className="text-primary-500" size={18} />
+          Active Shipments GPS Controls
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-dark-700 text-gray-500 uppercase text-xs">
+                <th className="py-3 px-2 font-medium">Tracking #</th>
+                <th className="py-3 px-2 font-medium">Status</th>
+                <th className="py-3 px-2 font-medium">Vehicle</th>
+                <th className="py-3 px-2 font-medium">Traccar Device ID</th>
+                <th className="py-3 px-2 font-medium">GPS Status</th>
+                <th className="py-3 px-2 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeShipmentsData?.map((shipment) => (
+                <tr key={shipment.id} className="border-b border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600">
+                  <td className="py-3 px-2 font-mono text-primary-500 font-medium">{shipment.trackingNumber}</td>
+                  <td className="py-3 px-2 capitalize">{shipment.status.replace(/_/g, ' ')}</td>
+                  <td className="py-3 px-2">{shipment.vehicle ? shipment.vehicle.plateNumber : 'None'}</td>
+                  <td className="py-3 px-2 text-gray-500">
+                    {shipment.vehicle?.traccarDeviceId ? (
+                      <span className="font-mono text-xs">{shipment.vehicle.traccarDeviceId}</span>
+                    ) : (
+                      <span className="text-yellow-500 text-xs">Not configured</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      shipment.trackingStatus === 'active' ? 'bg-green-100 text-green-700' : 
+                      shipment.trackingStatus === 'completed' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {shipment.trackingStatus === 'active' ? 'Active' : shipment.trackingStatus === 'completed' ? 'Completed' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2">
+                    {shipment.trackingStatus !== 'active' ? (
+                      <button
+                        onClick={() => startTrackingMutation.mutate(shipment.id)}
+                        disabled={startTrackingMutation.isPending || !shipment.vehicle?.traccarDeviceId}
+                        className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <FiPlay size={12} /> Start
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => stopTrackingMutation.mutate(shipment.id)}
+                        disabled={stopTrackingMutation.isPending}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs py-1.5 px-3 font-semibold transition-colors flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <FiSquare size={12} /> Stop
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {(!activeShipmentsData || activeShipmentsData.length === 0) && (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-gray-500">
+                    No active shipments to track
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

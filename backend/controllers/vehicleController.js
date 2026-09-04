@@ -121,3 +121,21 @@ exports.getLiveLocations = async (req, res, next) => {
     next(error);
   }
 };
+
+// PATCH /api/vehicles/:id/tracking-device
+exports.updateTrackingDevice = async (req, res, next) => {
+  try {
+    const { traccarDeviceId } = req.body;
+    
+    // Check if vehicle exists
+    const vehicle = await Vehicle.findByPk(req.params.id);
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    
+    // Save the traccar device ID
+    await Vehicle.update({ traccarDeviceId }, { where: { id: req.params.id } });
+    
+    res.status(200).json({ success: true, message: 'Tracking device associated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

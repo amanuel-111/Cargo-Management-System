@@ -11,6 +11,7 @@ const { connectDB, sequelize } = require('./config/db');
 require('./models'); // register all models + associations
 const errorHandler = require('./middleware/errorHandler');
 const socketHandler = require('./sockets/socketHandler');
+const traccarPoller = require('./services/traccarPoller');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -78,9 +79,10 @@ const start = async () => {
     : { logging: false };                          // production: no-op sync
   await sequelize.sync(syncOptions);
   console.log('✅ All MySQL tables synced');
-  server.listen(PORT, () =>
-    console.log(`🚀 Server running on port ${PORT} | ENV: ${process.env.NODE_ENV}`)
-  );
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} | ENV: ${process.env.NODE_ENV}`);
+    traccarPoller.start(io);
+  });
 };
 
 start();

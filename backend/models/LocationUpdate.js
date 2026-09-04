@@ -15,6 +15,7 @@ LocationUpdate.init(
     speed: { type: DataTypes.DECIMAL(6, 2), allowNull: true },
     heading: { type: DataTypes.DECIMAL(6, 2), allowNull: true },
     accuracy: { type: DataTypes.DECIMAL(8, 2), allowNull: true },
+    traccarPositionId: { type: DataTypes.INTEGER, allowNull: true },
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   },
   { sequelize, modelName: 'LocationUpdate', tableName: 'location_updates' }

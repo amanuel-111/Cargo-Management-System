@@ -58,6 +58,15 @@ Shipment.init(
       defaultValue: 'pending',
     },
 
+    // GPS Tracking
+    trackingEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    trackingStatus: {
+      type: DataTypes.ENUM('inactive', 'active', 'completed'),
+      defaultValue: 'inactive',
+    },
+    trackingStartedAt: { type: DataTypes.DATE, allowNull: true },
+    trackingEndedAt: { type: DataTypes.DATE, allowNull: true },
+
     // Pricing
     basePrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     distancePrice: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },

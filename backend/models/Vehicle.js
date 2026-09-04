@@ -32,6 +32,8 @@ Vehicle.init(
     lastMaintenanceDate: { type: DataTypes.DATE, allowNull: true },
     nextMaintenanceDate: { type: DataTypes.DATE, allowNull: true },
     mileage: { type: DataTypes.INTEGER, defaultValue: 0 },
+    traccarDeviceId: { type: DataTypes.STRING(100), allowNull: true },
+    trackingEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     companyId: { type: DataTypes.INTEGER, allowNull: true },
   },

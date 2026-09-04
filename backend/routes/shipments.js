@@ -84,7 +84,7 @@ router.get('/',
 
 // ── Single shipment ───────────────────────────────────────────
 router.get('/:id',
-  [param('id').isInt({ min: 1 }).withMessage('Invalid shipment ID')],
+  [param('id').notEmpty().withMessage('Invalid shipment identifier')],
   validate,
   getShipment
 );

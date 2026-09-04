@@ -77,6 +77,16 @@ const VehicleForm = ({ onSubmit, loading, submitLabel, showStatus, onCancel, def
         </div>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traccar Device ID (GPS)</label>
+        <input
+          {...register('traccarDeviceId')}
+          className="input-field"
+          placeholder="e.g. 123456 (Unique Device Identifier)"
+        />
+        <p className="text-xs text-gray-500 mt-1">Leave blank if this vehicle does not have a GPS tracker installed.</p>
+      </div>
+
       {showStatus && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
@@ -355,6 +365,7 @@ const ManageVehicles = () => {
               capacity:    editVehicle.capacity,
               fuelType:    editVehicle.fuelType,
               status:      editVehicle.status,
+              traccarDeviceId: editVehicle.traccarDeviceId,
             }}
           />
         )}
