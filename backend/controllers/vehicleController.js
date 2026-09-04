@@ -159,3 +159,32 @@ exports.updateTrackingDevice = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET /api/vehicles/:id/assignment-check
+exports.checkAssignment = async (req, res, next) => {
+  try {
+    const vehicleId = req.params.id;
+    const { shipmentId } = req.query;
+
+    const Shipment = require('../models/Shipment');
+    const LogisticsService = require('../services/logisticsService');
+
+    const shipment = await Shipment.findByPk(shipmentId);
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+
+    const capacityInfo = await LogisticsService.getVehicleCapacityInfo(vehicleId, shipment.cargoWeight);
+    const routeInfo = await LogisticsService.checkRouteCompatibility(vehicleId, shipment);
+    const scheduleInfo = await LogisticsService.checkScheduleCompatibility(vehicleId, shipment);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        capacity: capacityInfo,
+        route: routeInfo,
+        schedule: scheduleInfo,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
