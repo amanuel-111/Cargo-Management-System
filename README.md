@@ -1,6 +1,6 @@
 # 🚚 Smart Transport — Cargo Management System
 
-A full-stack logistics and cargo management platform built for Ethiopian transport operations. Supports real-time shipment tracking, multi-role dashboards, fleet management, and payment processing.
+A full-stack logistics and cargo management platform built for Ethiopian transport operations. Supports shipment tracking, multi-role dashboards, fleet management, and payment proof verification.
 
 ---
 
@@ -9,15 +9,15 @@ A full-stack logistics and cargo management platform built for Ethiopian transpo
 ### Customer
 - Create shipment requests with pickup & delivery details
 - Real-time shipment tracking via tracking number
-- Payment submission (CBE Bank, Telebirr, Chapa)
+- Submit payment proof for CBE Bank, Telebirr, or Chapa
 - Shipment history and status updates
 - Rate completed deliveries
 
 ### Driver
 - View assigned deliveries
 - Update shipment status (picked up → in transit → delivered)
-- Upload proof of delivery (photo + signature)
-- Real-time location sharing
+- Upload proof of delivery with photo and recipient details
+- Location sharing
 
 ### Fleet Manager
 - Assign drivers and vehicles to shipments
@@ -26,9 +26,9 @@ A full-stack logistics and cargo management platform built for Ethiopian transpo
 - Generate reports
 
 ### Admin
-- Full user management (create, activate, deactivate)
+- User management (view, update, and deactivate users)
 - System-wide analytics dashboard
-- Platform settings
+- System configuration options
 
 ---
 
@@ -43,8 +43,8 @@ A full-stack logistics and cargo management platform built for Ethiopian transpo
 | Auth | JWT (access + refresh tokens) |
 | File Uploads | Cloudinary + Multer |
 | Email | Nodemailer (Gmail SMTP) |
-| SMS | Twilio |
-| Maps | Mapbox GL |
+| SMS Notifications | Twilio |
+| Maps | Leaflet, React Leaflet |
 | Charts | Recharts |
 
 ---
@@ -79,8 +79,9 @@ Cargo-Management-System/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js v16+
+- Node.js v18+
 - MySQL (MAMP, XAMPP, or standalone)
+- Traccar Server (optional, for GPS live tracking)
 
 ### 1. Clone the repo
 ```bash
@@ -112,10 +113,11 @@ Create the database:
 CREATE DATABASE smart_transport CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Start the backend (tables are auto-created on first run):
+Start the backend:
 ```bash
 npm run dev
 ```
+*Note: In development mode, Sequelize automatically synchronizes the database tables on startup.*
 
 ### 3. Frontend setup
 ```bash
@@ -128,7 +130,6 @@ cp .env.example .env
 ```env
 REACT_APP_API_URL=http://localhost:5000/api
 REACT_APP_SOCKET_URL=http://localhost:5000
-REACT_APP_MAPBOX_TOKEN=your_mapbox_token   # optional
 ```
 
 Start the frontend:
@@ -140,22 +141,28 @@ npm start
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000/api |
-| Health check | http://localhost:5000/health |
 
 ---
 
 ## 💰 Pricing
 
-Shipment pricing is calculated as:
+Shipment pricing is calculated based on geographic distance, cargo weight, and priority.
 
+**Normal:**
 ```
-Total = (Distance in km × 25 ETB) + (Weight in kg × 2 ETB)
+Total = (Distance in km × 25 ETB) + (Weight in kg × 35 ETB)
+```
+
+**Urgent:**
+```
+Total = (Distance in km × 25 ETB) + (Weight in kg × 40 ETB)
+```
+
 Minimum fare: 200 ETB
-```
 
 Use the estimate endpoint before creating a shipment:
 ```
-GET /api/shipments/estimate?pickupLat=9.03&pickupLng=38.74&destLat=8.99&destLng=38.79&weight=50
+GET /api/shipments/estimate?pickupLat=9.03&pickupLng=38.74&destLat=8.99&destLng=38.79&weight=50&priority=normal
 ```
 
 ---
@@ -167,7 +174,7 @@ GET /api/shipments/estimate?pickupLat=9.03&pickupLng=38.74&destLat=8.99&destLng=
 | `customer` | Create shipments, track, pay, rate |
 | `driver` | View assignments, update status, upload POD |
 | `fleet_manager` | Assign drivers/vehicles, manage fleet, reports |
-| `admin` | Full system access |
+| `admin` | View analytics, user management |
 
 ---
 
@@ -184,7 +191,7 @@ PUT    /api/shipments/:id/assign
 PUT    /api/shipments/:id/status
 GET    /api/vehicles
 GET    /api/users
-GET    /api/analytics/overview
+GET    /api/analytics/dashboard
 GET    /api/notifications
 ```
 
@@ -195,6 +202,15 @@ GET    /api/notifications
 See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`](frontend/.env.example) for all required variables.
 
 > **Note:** Never commit your `.env` file. It is listed in `.gitignore`.
+
+---
+
+## ⚠️ Current Limitations
+
+* **Distance Calculation:** Distance is currently estimated using the Haversine formula based on pickup and destination coordinates. This represents geographic (straight-line) distance rather than actual road distance.
+* **Payments:** The system uses a payment proof submission and manual approval workflow rather than direct payment gateway transaction processing.
+* **Tracking:** GPS tracking requires an external Traccar server to be configured and running.
+* **Settings:** The platform settings are configured through the UI and are not persisted to the database.
 
 ---
 
