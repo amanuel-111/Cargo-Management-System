@@ -7,7 +7,7 @@ const { upload } = require('../config/cloudinary');
 const {
   createShipment, getShipments, getShipment, trackShipment,
   assignShipment, updateStatus, uploadProofOfDelivery, cancelShipment, rateShipment,
-  estimatePrice, downloadInvoice,
+  estimatePrice, downloadInvoice, getShipmentStats,
 } = require('../controllers/shipmentController');
 
 // ── Public routes ─────────────────────────────────────────────
@@ -31,6 +31,8 @@ router.get('/estimate',
 );
 
 router.use(protect);
+
+router.get('/stats', getShipmentStats);
 
 // ── Create shipment ───────────────────────────────────────────
 router.post('/',

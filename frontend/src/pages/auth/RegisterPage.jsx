@@ -121,7 +121,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -133,8 +133,8 @@ const RegisterPage = () => {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
 
-            {/* First + Last name */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
               <Field label={t('firstName', 'First Name')} error={errors.firstName?.message} success={dirtyFields.firstName && !errors.firstName ? '✓' : ''}>
                 <div className="relative">
                   <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
@@ -151,6 +151,7 @@ const RegisterPage = () => {
                 </div>
               </Field>
 
+              {/* Last Name */}
               <Field label={t('lastName', 'Last Name')} error={errors.lastName?.message} success={dirtyFields.lastName && !errors.lastName ? '✓' : ''}>
                 <input
                   {...register('lastName', {
@@ -163,38 +164,82 @@ const RegisterPage = () => {
                   placeholder="Girma"
                 />
               </Field>
+
+              {/* Email */}
+              <Field label={t('email', 'Email Address')} error={errors.email?.message} success={dirtyFields.email && !errors.email ? 'Valid email' : ''}>
+                <div className="relative">
+                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    {...register('email', {
+                      required: 'Email is required',
+                      pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+                    })}
+                    type="email"
+                    className={`${inputClass(errors.email, dirtyFields.email)} pl-9 text-sm`}
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </Field>
+
+              {/* Phone */}
+              <Field label={t('phone', 'Phone Number')} error={errors.phone?.message} success={dirtyFields.phone && !errors.phone ? 'Valid phone number' : ''}>
+                <div className="relative">
+                  <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    {...register('phone', {
+                      required: 'Phone number is required',
+                      pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Enter a valid phone number (e.g. +251 911 123 456)' },
+                    })}
+                    className={`${inputClass(errors.phone, dirtyFields.phone)} pl-9 text-sm`}
+                    placeholder="+251 911 123 456"
+                  />
+                </div>
+              </Field>
+
+              {/* Password */}
+              <Field label={t('password', 'Password')} error={errors.password?.message}>
+                <div className="relative">
+                  <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: { value: 8, message: 'At least 8 characters required' },
+                      validate: {
+                        hasUpper: (v) => /[A-Z]/.test(v) || 'Must include an uppercase letter',
+                        hasNumber: (v) => /[0-9]/.test(v) || 'Must include a number',
+                      },
+                    })}
+                    type={showPass ? 'text' : 'password'}
+                    className={`${inputClass(errors.password, dirtyFields.password)} pl-9 pr-9 text-sm`}
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showPass ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                  </button>
+                </div>
+                {/* Live strength meter */}
+                {password && <PasswordStrength password={password} />}
+              </Field>
+
+              {/* Confirm password */}
+              <Field label={t('confirmPassword', 'Confirm Password')} error={errors.confirmPassword?.message} success={dirtyFields.confirmPassword && !errors.confirmPassword ? 'Passwords match' : ''}>
+                <div className="relative">
+                  <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    {...register('confirmPassword', {
+                      required: 'Please confirm your password',
+                      validate: (v) => v === password || 'Passwords do not match',
+                    })}
+                    type={showConfirm ? 'text' : 'password'}
+                    className={`${inputClass(errors.confirmPassword, dirtyFields.confirmPassword)} pl-9 pr-9 text-sm`}
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showConfirm ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                  </button>
+                </div>
+              </Field>
             </div>
-
-            {/* Email */}
-            <Field label={t('email', 'Email Address')} error={errors.email?.message} success={dirtyFields.email && !errors.email ? 'Valid email' : ''}>
-              <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
-                  })}
-                  type="email"
-                  className={`${inputClass(errors.email, dirtyFields.email)} pl-9 text-sm`}
-                  placeholder="you@example.com"
-                />
-              </div>
-            </Field>
-
-            {/* Phone */}
-            <Field label={t('phone', 'Phone Number')} error={errors.phone?.message} success={dirtyFields.phone && !errors.phone ? 'Valid phone number' : ''}>
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input
-                  {...register('phone', {
-                    required: 'Phone number is required',
-                    pattern: { value: /^\+?[0-9\s\-]{7,20}$/, message: 'Enter a valid phone number (e.g. +251 911 123 456)' },
-                  })}
-                  className={`${inputClass(errors.phone, dirtyFields.phone)} pl-9 text-sm`}
-                  placeholder="+251 911 123 456"
-                />
-              </div>
-            </Field>
 
             {/* Account type */}
             <Field label={t('role', 'Account Type')}>
@@ -202,50 +247,6 @@ const RegisterPage = () => {
                 <option value="customer">{t('customer', 'Customer')}</option>
                 <option value="driver">{t('driver', 'Driver')}</option>
               </select>
-            </Field>
-
-            {/* Password */}
-            <Field label={t('password', 'Password')} error={errors.password?.message}>
-              <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'At least 8 characters required' },
-                    validate: {
-                      hasUpper: (v) => /[A-Z]/.test(v) || 'Must include an uppercase letter',
-                      hasNumber: (v) => /[0-9]/.test(v) || 'Must include a number',
-                    },
-                  })}
-                  type={showPass ? 'text' : 'password'}
-                  className={`${inputClass(errors.password, dirtyFields.password)} pl-9 pr-9 text-sm`}
-                  placeholder="••••••••"
-                />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPass ? <FiEyeOff size={14} /> : <FiEye size={14} />}
-                </button>
-              </div>
-              {/* Live strength meter */}
-              {password && <PasswordStrength password={password} />}
-            </Field>
-
-            {/* Confirm password */}
-            <Field label={t('confirmPassword', 'Confirm Password')} error={errors.confirmPassword?.message} success={dirtyFields.confirmPassword && !errors.confirmPassword ? 'Passwords match' : ''}>
-              <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input
-                  {...register('confirmPassword', {
-                    required: 'Please confirm your password',
-                    validate: (v) => v === password || 'Passwords do not match',
-                  })}
-                  type={showConfirm ? 'text' : 'password'}
-                  className={`${inputClass(errors.confirmPassword, dirtyFields.confirmPassword)} pl-9 pr-9 text-sm`}
-                  placeholder="••••••••"
-                />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showConfirm ? <FiEyeOff size={14} /> : <FiEye size={14} />}
-                </button>
-              </div>
             </Field>
 
             <button type="submit" disabled={loading} className="btn-primary w-full py-3 mt-2">

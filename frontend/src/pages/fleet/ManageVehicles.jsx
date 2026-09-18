@@ -125,6 +125,12 @@ const ManageVehicles = () => {
         .then((r) => r.data),
   });
 
+  const { data: statsData } = useQuery({
+    queryKey: ['vehicle-stats'],
+    queryFn: () => api.get('/vehicles/stats').then((r) => r.data),
+  });
+  const stats = statsData?.data || { available: 0, in_transit: 0, maintenance: 0, inactive: 0 };
+
   const { data: driversData } = useQuery({
     queryKey: ['drivers-for-assign'],
     queryFn: () => api.get('/users/drivers').then((r) => r.data),
@@ -135,6 +141,7 @@ const ManageVehicles = () => {
     mutationFn: (d) => api.post('/vehicles', d),
     onSuccess: () => {
       queryClient.invalidateQueries(['vehicles']);
+      queryClient.invalidateQueries(['vehicle-stats']);
       toast.success('Vehicle added!');
       setShowAdd(false);
     },
@@ -145,6 +152,7 @@ const ManageVehicles = () => {
     mutationFn: ({ id, ...d }) => api.put(`/vehicles/${id}`, d),
     onSuccess: () => {
       queryClient.invalidateQueries(['vehicles']);
+      queryClient.invalidateQueries(['vehicle-stats']);
       toast.success('Vehicle updated!');
       setEditVehicle(null);
     },
@@ -156,6 +164,7 @@ const ManageVehicles = () => {
       api.put(`/vehicles/${vehicleId}/assign-driver`, { driverId }),
     onSuccess: () => {
       queryClient.invalidateQueries(['vehicles']);
+      queryClient.invalidateQueries(['vehicle-stats']);
       toast.success('Driver assigned!');
       setAssignVehicle(null);
       setSelectedDriver('');
@@ -194,7 +203,7 @@ const ManageVehicles = () => {
           { label: 'Maintenance',  status: 'maintenance', color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
           { label: 'Inactive',     status: 'inactive',    color: 'bg-gray-50   border-gray-200   text-gray-600'   },
         ].map(({ label, status, color }) => {
-          const count = vehicles.filter((v) => v.status === status).length;
+          const count = stats[status] || 0;
           return (
             <button
               key={status}

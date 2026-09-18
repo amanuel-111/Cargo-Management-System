@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../redux/slices/authSlice';
+import { logoutUser } from '../redux/slices/authSlice';
 import { disconnectSocket } from '../services/socketService';
 
 export const useAuth = () => {
@@ -10,7 +10,7 @@ export const useAuth = () => {
 
   const handleLogout = () => {
     disconnectSocket();
-    dispatch(logout());
+    dispatch(logoutUser());
     navigate('/login');
   };
 

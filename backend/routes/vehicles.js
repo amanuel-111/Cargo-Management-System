@@ -4,10 +4,12 @@ const { body, param, query } = require('express-validator');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const {
-  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations, updateTrackingDevice, checkAssignment,
+  createVehicle, getVehicles, getVehicle, updateVehicle, deleteVehicle, assignDriver, getLiveLocations, updateTrackingDevice, checkAssignment, getVehicleStats,
 } = require('../controllers/vehicleController');
 
 router.use(protect);
+
+router.get('/stats', authorize('admin', 'fleet_manager'), getVehicleStats);
 
 router.get('/live-locations', getLiveLocations);
 

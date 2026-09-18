@@ -9,11 +9,7 @@ Notification.init(
     recipientId: { type: DataTypes.INTEGER, allowNull: false },
     senderId: { type: DataTypes.INTEGER, allowNull: true },
     type: {
-      type: DataTypes.ENUM(
-        'shipment_created', 'shipment_assigned', 'shipment_picked_up',
-        'shipment_in_transit', 'shipment_delivered', 'shipment_failed',
-        'shipment_cancelled', 'driver_assigned', 'payment_received', 'system', 'alert'
-      ),
+      type: DataTypes.STRING(50),
       allowNull: false,
     },
     title: { type: DataTypes.STRING(255), allowNull: false },

@@ -166,10 +166,18 @@ exports.getShipmentLiveLocation = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    const location = await LocationUpdate.findOne({
-      where: { shipmentId: shipment.id },
-      order: [['timestamp', 'DESC']]
-    });
+    let location = null;
+    if (shipment.driverId) {
+      location = await LocationUpdate.findOne({
+        where: { driverId: shipment.driverId },
+        order: [['timestamp', 'DESC']]
+      });
+    } else {
+      location = await LocationUpdate.findOne({
+        where: { shipmentId: shipment.id },
+        order: [['timestamp', 'DESC']]
+      });
+    }
     
     res.status(200).json({
       success: true,
@@ -207,7 +215,13 @@ exports.getShipmentLocationHistory = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    let where = { shipmentId: shipment.id };
+    let where = {};
+    if (shipment.driverId) {
+      where.driverId = shipment.driverId;
+    } else {
+      where.shipmentId = shipment.id;
+    }
+    
     if (from || to) {
       where.timestamp = {};
       if (from) where.timestamp[require('sequelize').Op.gte] = new Date(from);
@@ -245,10 +259,18 @@ exports.getPublicTracking = async (req, res, next) => {
     
     let currentLocation = null;
     if (shipment.trackingEnabled && shipment.trackingStatus === 'active') {
-      const location = await LocationUpdate.findOne({
-        where: { shipmentId: shipment.id },
-        order: [['timestamp', 'DESC']]
-      });
+      let location = null;
+      if (shipment.driverId) {
+        location = await LocationUpdate.findOne({
+          where: { driverId: shipment.driverId },
+          order: [['timestamp', 'DESC']]
+        });
+      } else {
+        location = await LocationUpdate.findOne({
+          where: { shipmentId: shipment.id },
+          order: [['timestamp', 'DESC']]
+        });
+      }
       if (location) {
         currentLocation = {
           latitude: location.lat,

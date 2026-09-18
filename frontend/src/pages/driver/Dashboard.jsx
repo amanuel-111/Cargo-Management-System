@@ -21,9 +21,17 @@ const DriverDashboard = () => {
     queryFn: () => api.get('/shipments?limit=5').then((r) => r.data),
   });
 
+  const { data: statsRes } = useQuery({
+    queryKey: ['driver-shipment-stats'],
+    queryFn: () => api.get('/shipments/stats').then((r) => r.data),
+  });
+
+  const stats = statsRes?.data || { total: 0, delivered: 0, assigned: 0, picked_up: 0, in_transit: 0, out_for_delivery: 0 };
+  const inProgressCount = stats.assigned + stats.picked_up + stats.in_transit + stats.out_for_delivery;
+
   const shipments     = shipmentsData?.data || [];
   const activeDeliveries = shipments.filter((s) =>
-    ['assigned', 'picked_up', 'in_transit'].includes(s.status)
+    ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(s.status)
   );
 
   const handleToggleAvailability = async () => {
@@ -60,7 +68,7 @@ const DriverDashboard = () => {
       </div>
 
       {/* Active deliveries alert */}
-      {activeDeliveries.length > 0 && (
+      {inProgressCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,7 +76,7 @@ const DriverDashboard = () => {
         >
           <div className="flex items-center justify-between mb-2">
             <p className="font-semibold text-primary-700 dark:text-primary-400">
-              {activeDeliveries.length} Active {activeDeliveries.length === 1 ? 'Delivery' : 'Deliveries'}
+              {inProgressCount} Active {inProgressCount === 1 ? 'Delivery' : 'Deliveries'}
             </p>
             <Link to={`/driver/deliveries`} className="btn-primary text-sm py-1.5 px-3">
               View All
@@ -98,9 +106,9 @@ const DriverDashboard = () => {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <StatCard title="Total Deliveries"  value={user?.totalDeliveries || 0}                                                    icon={FiPackage}     color="primary" />
-            <StatCard title="Completed"          value={shipments.filter((s) => s.status === 'delivered').length}                     icon={FiCheckCircle} color="green"   />
-            <StatCard title="In Progress"        value={shipments.filter((s) => ['assigned','in_transit'].includes(s.status)).length} icon={FiTruck}       color="orange"  />
+            <StatCard title="Total Deliveries"  value={user?.totalDeliveries || 0}                                                   icon={FiPackage}     color="primary" />
+            <StatCard title="Completed"          value={stats.delivered}                                                             icon={FiCheckCircle} color="green"   />
+            <StatCard title="In Progress"        value={inProgressCount}                                                             icon={FiTruck}       color="orange"  />
             <StatCard title="Rating"             value={user?.rating ? Number(user.rating).toFixed(1) : 'N/A'}                       icon={FiStar}        color="purple"  />
           </>
         )}

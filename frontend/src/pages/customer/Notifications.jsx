@@ -11,6 +11,7 @@ const TYPE_ICONS = {
   shipment_assigned:    <FiTruck   className="text-purple-500" size={16} />,
   shipment_picked_up:   <FiTruck   className="text-orange-500" size={16} />,
   shipment_in_transit:  <FiTruck   className="text-orange-500" size={16} />,
+  shipment_out_for_delivery: <FiTruck className="text-orange-600" size={16} />,
   shipment_delivered:   <FiCheckCircle className="text-green-500" size={16} />,
   shipment_failed:      <FiAlertCircle className="text-red-500"   size={16} />,
   shipment_cancelled:   <FiAlertCircle className="text-gray-500"  size={16} />,

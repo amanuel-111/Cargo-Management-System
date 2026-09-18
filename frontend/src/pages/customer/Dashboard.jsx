@@ -16,11 +16,12 @@ import { useSelector } from 'react-redux';
 const CustomerDashboard = () => {
   const { user } = useSelector((state) => state.auth);
 
-  // Fetch all shipments for accurate stats
-  const { data: allData } = useQuery({
-    queryKey: ['customer-shipments-all'],
-    queryFn: () => api.get('/shipments?limit=100').then((r) => r.data),
+  // Fetch shipment stats
+  const { data: statsRes } = useQuery({
+    queryKey: ['customer-shipment-stats'],
+    queryFn: () => api.get('/shipments/stats').then((r) => r.data),
   });
+  const shipmentStats = statsRes?.data || { total: 0, in_transit: 0, delivered: 0, unpaid_pending: 0 };
 
   // Fetch recent 5 for the table
   const { data: recentData, isLoading } = useQuery({
@@ -28,18 +29,13 @@ const CustomerDashboard = () => {
     queryFn: () => api.get('/shipments?limit=5').then((r) => r.data),
   });
 
-  const allShipments    = allData?.data    || [];
   const recentShipments = recentData?.data || [];
-  const total           = allData?.total   || 0;
-
-  // Unpaid pending shipments — need payment
-  const unpaidShipments = allShipments.filter((s) => s.status === 'pending' && !s.isPaid);
 
   const stats = [
-    { title: 'Total Shipments', value: total,                                                              icon: FiPackage,     color: 'primary' },
-    { title: 'In Transit',      value: allShipments.filter((s) => s.status === 'in_transit').length,       icon: FiTruck,       color: 'orange'  },
-    { title: 'Delivered',       value: allShipments.filter((s) => s.status === 'delivered').length,        icon: FiCheckCircle, color: 'green'   },
-    { title: 'Pending Payment', value: unpaidShipments.length,                                             icon: FiClock,       color: 'blue'    },
+    { title: 'Total Shipments', value: shipmentStats.total,          icon: FiPackage,     color: 'primary' },
+    { title: 'In Transit',      value: shipmentStats.in_transit,     icon: FiTruck,       color: 'orange'  },
+    { title: 'Delivered',       value: shipmentStats.delivered,      icon: FiCheckCircle, color: 'green'   },
+    { title: 'Pending Payment', value: shipmentStats.unpaid_pending, icon: FiClock,       color: 'blue'    },
   ];
 
   return (
@@ -58,7 +54,7 @@ const CustomerDashboard = () => {
       </div>
 
       {/* Unpaid alert */}
-      {unpaidShipments.length > 0 && (
+      {shipmentStats.unpaid_pending > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,10 +64,10 @@ const CustomerDashboard = () => {
             <FiAlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
             <div>
               <p className="font-semibold text-yellow-800 dark:text-yellow-400 text-sm">
-                {unpaidShipments.length} shipment{unpaidShipments.length > 1 ? 's' : ''} awaiting payment
+                {shipmentStats.unpaid_pending} shipment{shipmentStats.unpaid_pending > 1 ? 's' : ''} awaiting payment
               </p>
               <p className="text-yellow-700 dark:text-yellow-500 text-xs">
-                Complete payment to confirm your shipment{unpaidShipments.length > 1 ? 's' : ''}
+                Complete payment to confirm your shipment{shipmentStats.unpaid_pending > 1 ? 's' : ''}
               </p>
             </div>
           </div>

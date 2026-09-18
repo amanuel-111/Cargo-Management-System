@@ -36,10 +36,17 @@ const PaymentApproval = () => {
     keepPreviousData: true,
   });
 
+  const { data: statsData } = useQuery({
+    queryKey: ['payment-stats'],
+    queryFn: () => api.get('/payments/stats').then((r) => r.data),
+  });
+  const stats = statsData?.data || { pending: 0, approved: 0, rejected: 0 };
+
   const approveMutation = useMutation({
     mutationFn: (id) => api.put(`/payments/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries(['payments']);
+      queryClient.invalidateQueries(['payment-stats']);
       queryClient.invalidateQueries(['fleet-pending-shipments']);
       toast.success('Payment approved — shipment confirmed!');
       setSelected(null);
@@ -51,6 +58,7 @@ const PaymentApproval = () => {
     mutationFn: ({ id, reason }) => api.put(`/payments/${id}/reject`, { reason }),
     onSuccess: () => {
       queryClient.invalidateQueries(['payments']);
+      queryClient.invalidateQueries(['payment-stats']);
       toast.success('Payment rejected — customer notified');
       setSelected(null);
       setShowReject(false);
@@ -102,9 +110,9 @@ const PaymentApproval = () => {
 
       {/* Status tabs */}
       <div className="flex items-center gap-2 flex-wrap">
-        <StatusTab value="pending"  label="Pending"  count={data?.total} />
-        <StatusTab value="approved" label="Approved" />
-        <StatusTab value="rejected" label="Rejected" />
+        <StatusTab value="pending"  label="Pending"  count={stats.pending} />
+        <StatusTab value="approved" label="Approved" count={stats.approved} />
+        <StatusTab value="rejected" label="Rejected" count={stats.rejected} />
       </div>
 
       {/* Search */}

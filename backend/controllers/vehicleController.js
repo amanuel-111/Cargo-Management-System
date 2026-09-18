@@ -188,3 +188,28 @@ exports.checkAssignment = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET /api/vehicles/stats — Get global vehicle counts
+exports.getVehicleStats = async (req, res, next) => {
+  try {
+    const { fn, col } = require('sequelize');
+    const stats = await Vehicle.findAll({
+      where: { isActive: true },
+      attributes: ['status', [fn('COUNT', col('id')), 'count']],
+      group: ['status'],
+      raw: true,
+    });
+    
+    // Format to { available: 0, in_transit: 0, maintenance: 0, inactive: 0 }
+    const formatted = { available: 0, in_transit: 0, maintenance: 0, inactive: 0 };
+    stats.forEach(s => {
+      if (formatted[s.status] !== undefined) {
+        formatted[s.status] = Number(s.count);
+      }
+    });
+
+    res.status(200).json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};

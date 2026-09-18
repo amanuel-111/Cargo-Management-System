@@ -46,6 +46,16 @@ export const updateProfile = createAsyncThunk('auth/updateProfile', async (formD
   }
 });
 
+export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { rejectWithValue }) => {
+  try {
+    await api.post('/auth/logout');
+    return true;
+  } catch (error) {
+    // Even if it fails on backend, we want to proceed to clear local state
+    return true;
+  }
+});
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -104,10 +114,18 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.token = null;
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.user = action.payload;
         toast.success('Profile updated!');
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
       });
   },
 });

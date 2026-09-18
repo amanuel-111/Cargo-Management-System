@@ -227,3 +227,27 @@ exports.rejectPayment = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET /api/payments/stats — Get global payment counts
+exports.getPaymentStats = async (req, res, next) => {
+  try {
+    const { fn, col, literal } = require('sequelize');
+    const stats = await Payment.findAll({
+      attributes: ['status', [fn('COUNT', col('id')), 'count']],
+      group: ['status'],
+      raw: true,
+    });
+    
+    // Format to { pending: 0, approved: 0, rejected: 0 }
+    const formatted = { pending: 0, approved: 0, rejected: 0 };
+    stats.forEach(s => {
+      if (formatted[s.status] !== undefined) {
+        formatted[s.status] = Number(s.count);
+      }
+    });
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -359,13 +359,29 @@ exports.updateStatus = async (req, res, next) => {
     await ShipmentStatusHistory.create({ shipmentId: shipment.id, status, note, locationLat, locationLng, updatedById: req.user.id });
 
     if (status === 'delivered') {
-      await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+      const remaining = await Shipment.count({
+        where: {
+          vehicleId: shipment.vehicleId,
+          status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+        }
+      });
+      if (remaining === 0) {
+        await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+      }
       await User.increment('totalDeliveries', { where: { id: shipment.driverId } });
     }
 
     if (status === 'failed' || status === 'cancelled') {
       if (shipment.vehicleId) {
-        await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+        const remaining = await Shipment.count({
+          where: {
+            vehicleId: shipment.vehicleId,
+            status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+          }
+        });
+        if (remaining === 0) {
+          await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+        }
       }
     }
 
@@ -425,7 +441,15 @@ exports.uploadProofOfDelivery = async (req, res, next) => {
       updatedById: req.user.id,
     });
 
-    await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+    const remaining = await Shipment.count({
+      where: {
+        vehicleId: shipment.vehicleId,
+        status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+      }
+    });
+    if (remaining === 0) {
+      await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+    }
     await User.increment('totalDeliveries', { where: { id: shipment.driverId } });
 
     await notificationService.createNotification({
@@ -469,9 +493,17 @@ exports.cancelShipment = async (req, res, next) => {
       updatedById: req.user.id,
     });
 
-    // Free vehicle if one was assigned
+    // Free vehicle if one was assigned and no other active shipments
     if (shipment.vehicleId) {
-      await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+      const remaining = await Shipment.count({
+        where: {
+          vehicleId: shipment.vehicleId,
+          status: { [Op.in]: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+        }
+      });
+      if (remaining === 0) {
+        await Vehicle.update({ status: 'available' }, { where: { id: shipment.vehicleId } });
+      }
     }
 
     res.status(200).json({ success: true, data: shipment });
@@ -560,7 +592,46 @@ async function getShipmentWithRelations(idOrTracking) {
       { model: User, as: 'driver', attributes: ['id', 'firstName', 'lastName', 'phone', 'avatar', 'rating', 'currentLat', 'currentLng'], required: false },
       { model: Vehicle, as: 'vehicle', attributes: ['id', 'plateNumber', 'type', 'brand', 'model'], required: false },
       { model: User, as: 'assignedBy', attributes: ['id', 'firstName', 'lastName'], required: false },
-      { model: ShipmentStatusHistory, as: 'statusHistory', order: [['createdAt', 'ASC']] },
     ],
   });
 }
+
+// GET /api/shipments/stats — Get shipment counts (role-scoped)
+exports.getShipmentStats = async (req, res, next) => {
+  try {
+    const { fn, col } = require('sequelize');
+    const where = {};
+    if (req.user.role === 'customer') where.customerId = req.user.id;
+    if (req.user.role === 'driver') where.driverId = req.user.id;
+
+    const stats = await Shipment.findAll({
+      where,
+      attributes: ['status', 'isPaid', [fn('COUNT', col('id')), 'count']],
+      group: ['status', 'isPaid'],
+      raw: true,
+    });
+    
+    // Format to { pending: 0, unpaid_pending: 0, confirmed: 0, assigned: 0, picked_up: 0, in_transit: 0, out_for_delivery: 0, delivered: 0, failed: 0, cancelled: 0 }
+    const formatted = { 
+      total: 0,
+      pending: 0, unpaid_pending: 0, confirmed: 0, 
+      assigned: 0, picked_up: 0, in_transit: 0, 
+      out_for_delivery: 0, delivered: 0, failed: 0, cancelled: 0 
+    };
+    
+    stats.forEach(s => {
+      const count = Number(s.count);
+      formatted.total += count;
+      if (formatted[s.status] !== undefined) {
+        formatted[s.status] += count;
+      }
+      if (s.status === 'pending' && !s.isPaid) {
+        formatted.unpaid_pending += count;
+      }
+    });
+
+    res.status(200).json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};

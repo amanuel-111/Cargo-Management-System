@@ -5,10 +5,12 @@ const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { upload } = require('../config/cloudinary');
 const {
-  submitPayment, getPayments, getPayment, approvePayment, rejectPayment,
+  submitPayment, getPayments, getPayment, approvePayment, rejectPayment, getPaymentStats,
 } = require('../controllers/paymentController');
 
 router.use(protect);
+
+router.get('/stats', authorize('fleet_manager', 'admin'), getPaymentStats);
 
 // Customer submits payment proof
 router.post(
@@ -33,6 +35,7 @@ router.get(
     query('limit').optional().isInt({ min: 1, max: 100 }),
   ],
   validate,
+  authorize('customer', 'fleet_manager', 'admin'),
   getPayments
 );
 
@@ -40,6 +43,7 @@ router.get(
   '/:id',
   [param('id').isInt({ min: 1 }).withMessage('Invalid payment ID')],
   validate,
+  authorize('customer', 'fleet_manager', 'admin'),
   getPayment
 );
 
