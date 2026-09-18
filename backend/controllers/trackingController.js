@@ -108,8 +108,8 @@ exports.getShipmentRoute = async (req, res, next) => {
 exports.getActiveDrivers = async (req, res, next) => {
   try {
     const drivers = await User.findAll({
-      where: { role: 'driver', isOnline: true, isActive: true },
-      attributes: ['id', 'firstName', 'lastName', 'avatar', 'currentLat', 'currentLng', 'rating', 'vehicleAssignedId'],
+      where: { role: 'driver', isActive: true },
+      attributes: ['id', 'firstName', 'lastName', 'avatar', 'currentLat', 'currentLng', 'rating', 'vehicleAssignedId', 'isOnline', 'lastSeen'],
     });
     res.status(200).json({ success: true, data: drivers });
   } catch (error) {

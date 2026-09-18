@@ -10,17 +10,17 @@ import { SkeletonCard } from '../../components/common/LoadingSkeleton';
 import { formatDate } from '../../utils/helpers';
 
 const FleetDashboard = () => {
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['fleet-stats'],
     queryFn: () => api.get('/analytics/dashboard').then((r) => r.data.data),
   });
 
-  const { data: trendsData } = useQuery({
+  const { data: trendsData, isLoading: trendsLoading, isError: trendsError } = useQuery({
     queryKey: ['shipment-trends'],
     queryFn: () => api.get('/analytics/shipment-trends?days=7').then((r) => r.data.data),
   });
 
-  const { data: pendingData } = useQuery({
+  const { data: pendingData, isLoading: pendingLoading, isError: pendingError } = useQuery({
     queryKey: ['fleet-pending-shipments'],
     queryFn: () => api.get('/shipments?status=confirmed&limit=5').then((r) => r.data),
   });
@@ -38,6 +38,11 @@ const FleetDashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsLoading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : statsError ? (
+          <div className="col-span-full card border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 text-center py-6 text-red-500 text-sm">
+            <FiAlertCircle className="mx-auto mb-2" size={24} />
+            Unable to load fleet statistics.
+          </div>
         ) : (
           <>
             <StatCard title="Total Shipments"    value={stats?.shipments?.total     || 0} icon={FiPackage} color="primary" change={stats?.shipments?.growth} />
@@ -52,7 +57,14 @@ const FleetDashboard = () => {
         {/* Trend chart */}
         <div className="card">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Shipment Trends (7 days)</h3>
-          {trendsData ? (
+          {trendsLoading ? (
+            <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Loading chart...</div>
+          ) : trendsError ? (
+            <div className="h-48 flex flex-col items-center justify-center text-red-500 text-sm">
+              <FiAlertCircle size={24} className="mb-2" />
+              Unable to load trend data
+            </div>
+          ) : trendsData ? (
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={trendsData}>
                 <defs>
@@ -69,7 +81,7 @@ const FleetDashboard = () => {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Loading chart...</div>
+            <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No data available</div>
           )}
         </div>
 
@@ -84,7 +96,13 @@ const FleetDashboard = () => {
               View all <FiArrowRight size={14} />
             </Link>
           </div>
-          {pendingShipments.length === 0 ? (
+          {pendingLoading ? (
+            <div className="text-center py-6 text-gray-500 text-sm">Loading shipments...</div>
+          ) : pendingError ? (
+            <div className="text-center py-6 text-red-500 text-sm bg-red-50 dark:bg-red-900/10 rounded-xl">
+              Unable to load pending shipments
+            </div>
+          ) : pendingShipments.length === 0 ? (
             <div className="text-center py-6 text-gray-500 text-sm">
               <FiCheckCircle className="mx-auto mb-2 text-green-400" size={24} />
               All shipments assigned

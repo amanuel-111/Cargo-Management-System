@@ -45,12 +45,14 @@ import ShipmentAssignment from './pages/fleet/ShipmentAssignment';
 import TrackingCenter from './pages/fleet/TrackingCenter';
 import FleetReports from './pages/fleet/Reports';
 import PaymentApproval from './pages/fleet/PaymentApproval';
+import FleetProfile from './pages/fleet/Profile';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AdminAnalytics from './pages/admin/Analytics';
 import SystemSettings from './pages/admin/Settings';
+import AdminProfile from './pages/admin/Profile';
 
 // Route Guards
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -137,6 +139,7 @@ function App() {
               <Route path="/fleet/tracking" element={<TrackingCenter />} />
               <Route path="/fleet/reports" element={<FleetReports />} />
               <Route path="/fleet/payments" element={<PaymentApproval />} />
+              <Route path="/fleet/profile" element={<FleetProfile />} />
             </Route>
           </Route>
         </Route>
@@ -149,6 +152,7 @@ function App() {
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/settings" element={<SystemSettings />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
             </Route>
           </Route>
         </Route>

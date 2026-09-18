@@ -6,6 +6,9 @@ const {
   startTracking, stopTracking, getShipmentLiveLocation, getShipmentLocationHistory, getPublicTracking
 } = require('../controllers/trackingController');
 
+// ── Explicit Protected Routes (before parameter routes) ──
+router.get('/active-drivers', protect, authorize('fleet_manager', 'admin'), getActiveDrivers);
+
 // ── Public Routes ──
 router.get('/:trackingNumber', getPublicTracking);
 
@@ -13,7 +16,6 @@ router.get('/:trackingNumber', getPublicTracking);
 router.use(protect);
 
 router.post('/location', authorize('driver'), updateLocation);
-router.get('/active-drivers', authorize('fleet_manager', 'admin'), getActiveDrivers);
 router.get('/driver/:driverId', getDriverLocationHistory);
 router.get('/shipment/:shipmentId/route', getShipmentRoute);
 

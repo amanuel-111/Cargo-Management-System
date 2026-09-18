@@ -1,7 +1,8 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { FiTruck, FiStar, FiPackage, FiDollarSign } from 'react-icons/fi';
-import { formatDate, getInitials } from '../../utils/helpers';
+import { formatDate } from '../../utils/helpers';
+import ProfileSettings from '../../components/common/ProfileSettings';
 
 const DriverProfile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -10,22 +11,10 @@ const DriverProfile = () => {
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Driver Profile</h1>
 
-      <div className="card">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center">
-            {user?.avatar ? (
-              <img src={user.avatar} alt="" className="w-20 h-20 rounded-full object-cover" />
-            ) : (
-              <span className="text-primary-600 font-bold text-2xl">{getInitials(user?.firstName, user?.lastName)}</span>
-            )}
-          </div>
-          <div>
-            <p className="font-bold text-xl text-gray-900 dark:text-white">{user?.firstName} {user?.lastName}</p>
-            <p className="text-gray-500">{user?.email}</p>
-            <p className="text-gray-500">{user?.phone}</p>
-          </div>
-        </div>
+      <ProfileSettings />
 
+      <div className="card">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Driver Statistics</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { icon: FiPackage, label: 'Total Deliveries', value: user?.totalDeliveries || 0, color: 'text-primary-500' },

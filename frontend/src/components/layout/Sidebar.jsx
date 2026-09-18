@@ -35,6 +35,7 @@ const navConfig = {
     { key: 'paymentApproval', label: 'Payment Approval', to: '/fleet/payments',    icon: FiDollarSign },
     { key: 'trackingCenter',  label: 'Tracking Center',  to: '/fleet/tracking',    icon: FiMap       },
     { key: 'reports',          label: 'Reports',          to: '/fleet/reports',     icon: FiBarChart2 },
+    { key: 'profile',          label: 'Profile',          to: '/fleet/profile',     icon: FiSettings  },
   ],
   admin: [
     { key: 'dashboard',        label: 'Dashboard',        to: '/admin/dashboard', icon: FiHome      },
@@ -42,6 +43,7 @@ const navConfig = {
     { key: 'paymentApproval', label: 'Payment Approval', to: '/fleet/payments',  icon: FiDollarSign },
     { key: 'analytics',        label: 'Analytics',        to: '/admin/analytics', icon: FiActivity  },
     { key: 'settings',         label: 'Settings',         to: '/admin/settings',  icon: FiTool      },
+    { key: 'profile',          label: 'Profile',          to: '/admin/profile',   icon: FiSettings  },
   ],
 };
 

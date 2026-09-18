@@ -129,7 +129,10 @@ exports.getShipments = async (req, res, next) => {
 
     if (req.user.role === 'customer') where.customerId = req.user.id;
     if (req.user.role === 'driver') where.driverId = req.user.id;
-    if (status) where.status = status;
+    if (status) {
+      const statusArray = status.split(',');
+      where.status = { [Op.in]: statusArray };
+    }
     if (priority) where.priority = priority;
     if (search) {
       where[Op.or] = [

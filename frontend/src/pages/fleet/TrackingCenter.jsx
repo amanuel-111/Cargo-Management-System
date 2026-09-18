@@ -9,6 +9,10 @@ import api from '../../services/api';
 import { getSocket } from '../../services/socketService';
 import { getInitials, timeAgo } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import Map, { Marker } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const TrackingCenter = () => {
   const [driverLocations, setDriverLocations] = useState({});   // live location per driverId
@@ -17,13 +21,13 @@ const TrackingCenter = () => {
   const [lastUpdate,      setLastUpdate]      = useState(null);
 
   const queryClient = useQueryClient();
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['active-drivers'],
     queryFn: () => api.get('/tracking/active-drivers').then((r) => r.data.data),
     refetchInterval: 30000,
   });
 
-  const { data: activeShipmentsData, refetch: refetchShipments } = useQuery({
+  const { data: activeShipmentsData, isLoading: shipmentsLoading, isError: shipmentsError, refetch: refetchShipments } = useQuery({
     queryKey: ['active-shipments'],
     queryFn: () => api.get('/shipments?status=in_transit,picked_up,out_for_delivery&limit=50').then((r) => r.data.data),
     refetchInterval: 30000,
@@ -172,13 +176,21 @@ const TrackingCenter = () => {
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
         <div className="card text-center">
-          <p className="text-2xl font-bold text-green-600">{onlineDrivers.length}</p>
+          {isError ? (
+            <p className="text-sm font-semibold text-red-500 py-2">Error</p>
+          ) : (
+            <p className="text-2xl font-bold text-green-600">{onlineDrivers.length}</p>
+          )}
           <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
             <FiWifi size={11} /> Online Drivers
           </p>
         </div>
         <div className="card text-center">
-          <p className="text-2xl font-bold text-gray-400">{offlineDrivers.length}</p>
+          {isError ? (
+            <p className="text-sm font-semibold text-red-500 py-2">Error</p>
+          ) : (
+            <p className="text-2xl font-bold text-gray-400">{offlineDrivers.length}</p>
+          )}
           <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
             <FiWifiOff size={11} /> Offline Drivers
           </p>
@@ -194,17 +206,52 @@ const TrackingCenter = () => {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Map area */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="card min-h-80 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-50 dark:from-dark-800 dark:to-dark-700">
-            <div className="text-center text-gray-500 max-w-sm">
-              <FiMapPin className="mx-auto mb-3 text-primary-400" size={40} />
-              <p className="font-semibold text-gray-700 dark:text-gray-300">Live Map View</p>
-              <p className="text-sm mt-2 text-gray-500">
-                Add your Mapbox token to enable the interactive map with real-time driver positions.
-              </p>
-              <code className="block mt-3 text-xs bg-gray-200 dark:bg-dark-600 rounded-lg px-3 py-2 text-gray-600 dark:text-gray-400">
-                REACT_APP_MAPBOX_TOKEN=pk.eyJ1...
-              </code>
-            </div>
+          <div className="card min-h-[400px] flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-50 dark:from-dark-800 dark:to-dark-700 relative overflow-hidden p-0">
+            {MAPBOX_TOKEN ? (
+              <Map
+                mapboxAccessToken={MAPBOX_TOKEN}
+                initialViewState={{
+                  longitude: 38.7578, // default to Addis Ababa
+                  latitude: 8.9806,
+                  zoom: 11
+                }}
+                mapStyle="mapbox://styles/mapbox/streets-v12"
+                style={{ width: '100%', height: '400px' }}
+              >
+                {Object.entries(driverLocations).map(([driverId, loc]) => {
+                  const driver = enrichedDrivers.find((d) => String(d.id) === String(driverId));
+                  if (!loc.lat || !loc.lng || isNaN(loc.lat) || isNaN(loc.lng)) return null;
+                  
+                  return (
+                    <Marker key={driverId} longitude={Number(loc.lng)} latitude={Number(loc.lat)} anchor="bottom">
+                      <div className="relative flex flex-col items-center cursor-pointer group">
+                        <div className="bg-white dark:bg-dark-800 px-2 py-1 rounded shadow text-xs font-semibold whitespace-nowrap mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {driver ? `${driver.firstName} ${driver.lastName}` : `Driver #${driverId}`}
+                        </div>
+                        <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden bg-primary-100 flex items-center justify-center">
+                          {driver?.avatar ? (
+                            <img src={driver.avatar} alt="Driver" className="w-full h-full object-cover" />
+                          ) : (
+                            <FiTruck className="text-primary-600" size={14} />
+                          )}
+                        </div>
+                      </div>
+                    </Marker>
+                  );
+                })}
+              </Map>
+            ) : (
+              <div className="text-center text-gray-500 max-w-sm p-6">
+                <FiMapPin className="mx-auto mb-3 text-primary-400" size={40} />
+                <p className="font-semibold text-gray-700 dark:text-gray-300">Live Map View</p>
+                <p className="text-sm mt-2 text-gray-500">
+                  Add your Mapbox token to enable the interactive map with real-time driver positions.
+                </p>
+                <code className="block mt-3 text-xs bg-gray-200 dark:bg-dark-600 rounded-lg px-3 py-2 text-gray-600 dark:text-gray-400">
+                  REACT_APP_MAPBOX_TOKEN=pk.eyJ1...
+                </code>
+              </div>
+            )}
           </div>
 
           {/* Live location feed */}
@@ -253,7 +300,11 @@ const TrackingCenter = () => {
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               Online ({onlineDrivers.length})
             </h3>
-            {isLoading ? (
+            {isError ? (
+              <div className="text-center py-6 text-red-500 text-sm">
+                Unable to load driver data.
+              </div>
+            ) : isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
@@ -358,7 +409,21 @@ const TrackingCenter = () => {
                   </td>
                 </tr>
               ))}
-              {(!activeShipmentsData || activeShipmentsData.length === 0) && (
+              {shipmentsLoading && (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-gray-500">
+                    Loading shipments...
+                  </td>
+                </tr>
+              )}
+              {shipmentsError && (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-red-500 bg-red-50 dark:bg-red-900/10">
+                    Unable to load active shipments. Tracking service unavailable.
+                  </td>
+                </tr>
+              )}
+              {(!activeShipmentsData || activeShipmentsData.length === 0) && !shipmentsLoading && !shipmentsError && (
                 <tr>
                   <td colSpan="6" className="text-center py-6 text-gray-500">
                     No active shipments to track
