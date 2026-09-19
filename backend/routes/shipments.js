@@ -72,8 +72,14 @@ router.post('/',
 // ── List shipments ────────────────────────────────────────────
 router.get('/',
   [
-    query('status').optional()
-      .isIn(['pending','confirmed','assigned','picked_up','in_transit','out_for_delivery','delivered','failed','cancelled']),
+    query('status').optional().custom((value) => {
+      const statuses = value.split(',');
+      const validStatuses = ['pending','confirmed','assigned','picked_up','in_transit','out_for_delivery','delivered','failed','cancelled'];
+      for (let s of statuses) {
+        if (!validStatuses.includes(s)) throw new Error(`Invalid status: ${s}`);
+      }
+      return true;
+    }),
     query('priority').optional().isIn(['normal', 'urgent']),
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
