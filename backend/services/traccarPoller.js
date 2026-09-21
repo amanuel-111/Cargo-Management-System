@@ -10,7 +10,7 @@ class TraccarPoller {
 
   start(io) {
     if (this.intervalId) return;
-    console.log(`🚀 Starting Traccar polling service every ${this.pollIntervalMs}ms`);
+    // console.log(`🚀 Starting Traccar polling service every ${this.pollIntervalMs}ms`);
     
     this.intervalId = setInterval(() => this.poll(io), this.pollIntervalMs);
   }

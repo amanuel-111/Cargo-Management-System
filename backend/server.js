@@ -80,7 +80,7 @@ const start = async () => {
   await sequelize.sync(syncOptions);
   console.log('✅ All MySQL tables synced');
   server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT} | ENV: ${process.env.NODE_ENV}`);
+    console.log(`🚀 Server running on port ${PORT}`);
     traccarPoller.start(io);
   });
 };
