@@ -215,5 +215,4 @@ See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`]
 ---
 
 ## 📄 License
-
-MIT — free to use and modify.
+Amanuel Tilahun
